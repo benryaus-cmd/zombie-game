@@ -39,3 +39,7 @@ Entry: src/main.tsx -> src/zombie/ZombieGame.tsx.
 Old HubSide modules are retained in this repository for selective reuse / rollback, but the new entry deliberately does not mount HubSide's painting UI or live multiplayer system.
 
 This is an early gameplay pass, not tuned for dense hordes or fully tested on Aippy Android. Improvements include zombie obstacle navigation, visible weapon rig alignment, death motion, effects/audio and waves tuned against device performance.
+
+## Aippy imports
+
+The new `src/App.tsx` is the ZombieGame entry, so both a standalone Vite build and an Aippy imported-game adapter that mounts upstream App display the zombie UI. glTF requests prefer local `public/assets/zombie-kit`; when imported into a host without those public files, they fall back to the immutable GitHub asset URLs pinned to commit 8b033b0. Keep HubSide's original repository and original game URL separate.

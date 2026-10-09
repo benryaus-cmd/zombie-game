@@ -30,6 +30,15 @@ const WEAPONS: Record<Weapon, { rounds: number; delay: number; reload: number; d
   shotgun: { rounds: 6, delay: .85, reload: 2, damage: 2 },
 };
 const ASSET_BASE = import.meta.env.BASE_URL + 'assets/zombie-kit/';
+const REMOTE_ASSET_BASE = 'https://raw.githubusercontent.com/benryaus-cmd/zombie-game/8b033b008c3865587759196ed96e852502903cb5/public/assets/zombie-kit/';
+async function loadZombieAsset(name: string, signal: AbortSignal): Promise<Model> {
+  try { return await loadModel(ASSET_BASE + name, signal); }
+  catch (error) {
+    signal.throwIfAborted();
+    console.warn('Bundled zombie asset unavailable, using GitHub-hosted pack:', name, error);
+    return loadModel(REMOTE_ASSET_BASE + name, signal);
+  }
+}
 
 function blocked(world: WorldEngine, x: number, z: number, radius = .45): boolean {
   const foot = getGroundHeight(world, x, z);
@@ -158,10 +167,10 @@ class ZombieEngine {
   private async loadAssets() {
     try {
       const [zombie, pistol, rifle, shotgun] = await Promise.all([
-        loadModel(ASSET_BASE + 'Zombie_Ribcage.gltf', this.aborter.signal),
-        loadModel(ASSET_BASE + 'Pistol.gltf', this.aborter.signal),
-        loadModel(ASSET_BASE + 'Rifle.gltf', this.aborter.signal),
-        loadModel(ASSET_BASE + 'Shotgun.gltf', this.aborter.signal),
+        loadZombieAsset('Zombie_Ribcage.gltf', this.aborter.signal),
+        loadZombieAsset('Pistol.gltf', this.aborter.signal),
+        loadZombieAsset('Rifle.gltf', this.aborter.signal),
+        loadZombieAsset('Shotgun.gltf', this.aborter.signal),
       ]);
       if (this.disposed) return;
       this.model = zombie;
