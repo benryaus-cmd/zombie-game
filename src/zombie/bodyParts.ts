@@ -52,13 +52,34 @@ export function detachRegion(root:THREE.Group,region:Region,impulse:THREE.Vector
   geometry.setAttribute('position',new THREE.BufferAttribute(values,3));
   for(const name of ['uv','color'])if(original.getAttribute(name))geometry.setAttribute(name,original.getAttribute(name).clone());
   if(original.index)geometry.setIndex(original.index.clone());geometry.computeVertexNormals();geometry.computeBoundingSphere();
-  group.add(new THREE.Mesh(geometry,source.material));source.visible=false;
+  const material=Array.isArray(source.material)
+    ? source.material.map(m=>m.clone())
+    : source.material.clone();
+  const all=Array.isArray(material)?material:[material];
+  for(const m of all) {m.transparent=true;m.opacity=1;m.depthWrite=true;}
+  group.add(new THREE.Mesh(geometry,material));source.visible=false;
  }
  // Freeze at the impact pose, then simulate an outward impulse. No heavy physics dependency.
+ // Some source files also include unskinned footwear. Prevent a detached foot from staying on the walker.
+ if(region.startsWith('leg-')) {
+   const side=region.endsWith('-l')?'l':'r';
+   root.traverse(o=>{
+     if(!(o instanceof THREE.Mesh) || o instanceof THREE.SkinnedMesh || !o.visible)return;
+     const label=o.name.toLowerCase();
+     if(/foot|shoe|ankle|toe/.test(label) &&
+       (label.endsWith(side) || label.includes('.'+side) || label.includes('_'+side)))o.visible=false;
+   });
+ }
  return {root:group,velocity:impulse.clone().normalize().multiplyScalar(tuning.debrisForce).add(new THREE.Vector3(0,tuning.debrisLift,0)),
  age:0,spin:new THREE.Vector3(3+Math.random()*4,2+Math.random()*3,4+Math.random()*3),floor:root.position.y,rest:0};
 }
-export function disposeDebris(piece:Debris) {piece.root.traverse(o=>{if(o instanceof THREE.Mesh)o.geometry.dispose();});piece.root.removeFromParent();}
+export function disposeDebris(piece:Debris) {
+ piece.root.traverse(o=>{if(o instanceof THREE.Mesh) {
+   o.geometry.dispose();
+   for(const mat of Array.isArray(o.material)?o.material:[o.material])mat.dispose();
+ }});
+ piece.root.removeFromParent();
+}
 export function updateDebris(piece:Debris,dt:number):boolean {
  const tuning=getTuning();
  piece.age+=dt;
@@ -73,10 +94,12 @@ export function updateDebris(piece:Debris,dt:number):boolean {
   piece.velocity.x*=.73;piece.velocity.z*=.73;piece.spin.multiplyScalar(.65);
   piece.rest+=dt;
  }
- // Gently dissolve during the last quarter-second, then dispose all buffers after ~2s.
- if (piece.age > tuning.debrisTime - .25) {
-   const alpha=Math.max(.001,(tuning.debrisTime-piece.age)/.25);
-   piece.root.scale.setScalar(alpha);
+ // Fade out after actual ballistic movement, without changing the source model's materials.
+ if(piece.age>tuning.debrisTime-.35) {
+   const alpha=Math.max(0,(tuning.debrisTime-piece.age)/.35);
+   piece.root.traverse(o=>{if(o instanceof THREE.Mesh) {
+     for(const mat of Array.isArray(o.material)?o.material:[o.material])mat.opacity=alpha;
+   }});
  }
  return true;
 }

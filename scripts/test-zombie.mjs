@@ -1,9 +1,8 @@
 import { build } from 'vite';
 import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-const directory=await mkdtemp(path.join(tmpdir(),'dead-city-tests-'));
+const directory=await mkdtemp(path.join(process.cwd(),'.dead-city-tests-'));
 try {
  const names=['assets','combat','controls','parts','score'];
  for(const name of names) {
