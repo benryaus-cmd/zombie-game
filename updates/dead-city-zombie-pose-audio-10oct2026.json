@@ -1,0 +1,139 @@
+{
+  "version": "dead-city-zombie-pose-audio-10oct2026",
+  "type": "incremental",
+  "repository": "benryaus-cmd/zombie-game",
+  "commit": "9dc72554ad9581b3ac3b8202e6c85f0a02ff9021",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/9dc72554ad9581b3ac3b8202e6c85f0a02ff9021/",
+  "fileCount": 32,
+  "description": "Fix amputated foot visibility, anchor hoppers to surviving foot and crawlers to torso so neither floats nor sinks; integrate 25 local CC0 WAV/OGG sounds with WebAudio unlocking, positional zombie voices, firearm variants, hits, deaths, reload, tuning, and audio preview. Preserve all unlisted Aippy host and game files. IMPORTANT: downloader must write binary audio assets as raw bytes, not UTF-8 text.",
+  "files": [
+    {
+      "source": "src/zombie/ZombieGame.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/ZombieGame.tsx"
+    },
+    {
+      "source": "src/zombie/bodyParts.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/bodyParts.ts"
+    },
+    {
+      "source": "src/zombie/audio.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/audio.ts"
+    },
+    {
+      "source": "src/zombie/tuning.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/tuning.ts"
+    },
+    {
+      "source": "src/zombie/DebugPanel.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/DebugPanel.tsx"
+    },
+    {
+      "source": "src/zombie/debug.css",
+      "target": "src/games/importedGame/upstream/src/zombie/debug.css"
+    },
+    {
+      "source": "public/audio/sfx/pistol-0.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/pistol-0.wav"
+    },
+    {
+      "source": "public/audio/sfx/pistol-1.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/pistol-1.wav"
+    },
+    {
+      "source": "public/audio/sfx/pistol-2.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/pistol-2.wav"
+    },
+    {
+      "source": "public/audio/sfx/rifle-0.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/rifle-0.wav"
+    },
+    {
+      "source": "public/audio/sfx/rifle-1.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/rifle-1.wav"
+    },
+    {
+      "source": "public/audio/sfx/rifle-2.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/rifle-2.wav"
+    },
+    {
+      "source": "public/audio/sfx/shotgun-0.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/shotgun-0.wav"
+    },
+    {
+      "source": "public/audio/sfx/shotgun-1.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/shotgun-1.wav"
+    },
+    {
+      "source": "public/audio/sfx/zombie-1.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/zombie-1.wav"
+    },
+    {
+      "source": "public/audio/sfx/zombie-3.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/zombie-3.wav"
+    },
+    {
+      "source": "public/audio/sfx/zombie-4.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/zombie-4.wav"
+    },
+    {
+      "source": "public/audio/sfx/zombie-5.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/zombie-5.wav"
+    },
+    {
+      "source": "public/audio/sfx/zombie-6.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/zombie-6.wav"
+    },
+    {
+      "source": "public/audio/sfx/zombie-7.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/zombie-7.wav"
+    },
+    {
+      "source": "public/audio/sfx/zombie-8.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/zombie-8.wav"
+    },
+    {
+      "source": "public/audio/sfx/zombie-9.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/zombie-9.wav"
+    },
+    {
+      "source": "public/audio/sfx/zombie-10.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/zombie-10.wav"
+    },
+    {
+      "source": "public/audio/sfx/zombie-11.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/zombie-11.wav"
+    },
+    {
+      "source": "public/audio/sfx/zombie-12.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/zombie-12.wav"
+    },
+    {
+      "source": "public/audio/sfx/reload.ogg",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/reload.ogg"
+    },
+    {
+      "source": "public/audio/sfx/reload-rifle.ogg",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/reload-rifle.ogg"
+    },
+    {
+      "source": "public/audio/sfx/reload-shotgun.ogg",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/reload-shotgun.ogg"
+    },
+    {
+      "source": "public/audio/sfx/empty-click.ogg",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/empty-click.ogg"
+    },
+    {
+      "source": "public/audio/sfx/bullet-impact-0.ogg",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/bullet-impact-0.ogg"
+    },
+    {
+      "source": "public/audio/sfx/bullet-impact-1.ogg",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/bullet-impact-1.ogg"
+    },
+    {
+      "source": "public/audio/sfx/SOURCES.md",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/SOURCES.md"
+    }
+  ]
+}
