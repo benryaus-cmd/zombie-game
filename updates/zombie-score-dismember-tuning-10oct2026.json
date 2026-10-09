@@ -2,10 +2,10 @@
   "version": "zombie-score-dismember-tuning-10oct2026",
   "type": "incremental",
   "repository": "benryaus-cmd/zombie-game",
-  "commit": "22533507e880ee68f341d9996f05889396501cae",
-  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/22533507e880ee68f341d9996f05889396501cae/",
+  "commit": "fcb859f6821ce81bd96e7968a37c6761b6f71348",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/fcb859f6821ce81bd96e7968a37c6761b6f71348/",
   "fileCount": 12,
-  "description": "Dead City HubSide destination update; improved detached limbs with 2-second fade, one-leg hopping and no-leg crawling, combo score and celebration messages, short bullet tracers, reliable multitouch weapon switching, live developer values panel and topmost FPS overlay. Preserve all unlisted files and Aippy host shell.",
+  "description": "Dead City HubSide destination update; improved detached limbs with 2-second fade, one-leg hopping and no-leg crawling, combo score and celebration messages, short bullet tracers, reliable multitouch weapon switching, live developer values panel and topmost FPS overlay. Preserve all unlisted files and Aippy host shell. Live values panel can temporarily prevent player damage while open (optional 0/1 setting) to allow uninterrupted editing.",
   "files": [
     {
       "source": "src/zombie/ZombieGame.tsx",
