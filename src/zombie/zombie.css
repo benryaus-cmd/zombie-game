@@ -1,0 +1,62 @@
+
+.zombie-root { position:relative; width:100%; height:100%; overflow:hidden; isolation:isolate; background:#0b1115; color:#f3f6f4; font:600 13px/1.35 system-ui, sans-serif; container:game / size; touch-action:none; user-select:none; }
+.zombie-root .world-mount { position:absolute; inset:0; width:100%; height:100%; }
+.zombie-root .world-canvas { width:100%; height:100%; display:block; touch-action:none; }
+.zombie-hud { position:absolute; inset:0; pointer-events:none; z-index:10; }
+.zombie-hud button { pointer-events:auto; cursor:pointer; touch-action:manipulation; color:inherit; border:1px solid #ffffff55; background:#09131be6; border-radius:9px; padding:9px 12px; font-weight:800; letter-spacing:.04em; }
+.zombie-hud button:active { background:#294b57; }
+.zombie-hud button:disabled { opacity:.5; cursor:default; }
+.zombie-top { position:absolute; inset:0 0 auto; min-height:55px; display:flex; align-items:center; gap:14px; padding:7px 12px; background:linear-gradient(#05101bdb,#05101b00); }
+.zombie-brand { display:grid; flex:0 0 auto; }
+.zombie-brand strong { font-size:17px; line-height:1; letter-spacing:.11em; color:#ffb276; }
+.zombie-brand span { font-size:8px; color:#c5d6dc; letter-spacing:.2em; }
+.zombie-health { min-width:94px; width:min(16vw,155px); }
+.zombie-health span { font-size:10px; }
+.zombie-health div { margin-top:4px; height:8px; background:#491e1d; border-radius:4px; overflow:hidden; }
+.zombie-health i { display:block; height:100%; background:linear-gradient(90deg,#dc4d4d,#f3ae4b); transition:width .15s; }
+.zombie-wave { display:grid; justify-items:center; margin-left:auto; white-space:nowrap; }
+.zombie-wave strong { color:#ffcb72; font-size:16px; }
+.zombie-wave small { font-size:9px; color:#eff3f2; }
+.zombie-kills { white-space:nowrap; font-size:10px; }
+.zombie-kills strong { margin-left:4px; color:#ffcb72; font-size:18px; }
+.zombie-menu-button { font-size:17px; padding:7px 12px !important; }
+.zombie-reticle { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); color:#fff; text-shadow:0 0 4px #000; font-size:29px; font-weight:300; }
+.zombie-controls { position:absolute; inset:0; pointer-events:none; }
+.zombie-controls .joystick { bottom:17px; width:clamp(90px,18cqw,120px); height:clamp(90px,18cqw,120px); background:#07141a96; border:2px solid #afdce077; z-index:12; pointer-events:auto; }
+.zombie-controls .joystick:not(.look-joystick) { left:19px; }
+.zombie-controls .look-joystick { right:19px !important; left:auto !important; }
+.zombie-controls .joystick-knob { background:#41717f5c; }
+.zombie-fire { position:absolute; right:151px; bottom:21px; border-radius:50% !important; width:80px; height:80px; background:#ba3d28e8 !important; border:2px solid #ffd0af !important; font-size:15px; box-shadow:0 0 18px #ff441e40; }
+.zombie-jump { position:absolute; right:155px; bottom:116px; width:66px; height:48px; font-size:11px; }
+.zombie-ammo { position:absolute; right:9px; top:64px; display:grid; justify-items:end; gap:3px; font-variant-numeric:tabular-nums; font-size:10px; }
+.zombie-ammo > span { color:#ffcb72; }
+.zombie-ammo > b { font-size:18px; color:#f7f7ed; }
+.zombie-ammo > button { font-size:9px; padding:4px 8px; }
+.zombie-weapons { display:flex; gap:3px; margin-top:5px; }
+.zombie-weapons button { font-size:9px; padding:7px !important; }
+.zombie-weapons button.active { border-color:#ff9a54 !important; background:#733c24 !important; }
+.zombie-next-wave { position:absolute; top:32%; left:50%; transform:translateX(-50%); border:1px solid #ffc77780; background:#0a1619bd; padding:7px 15px; white-space:nowrap; color:#ffe0a3; letter-spacing:.1em; }
+.zombie-portal-link { position:absolute; bottom:169px; left:50%; transform:translateX(-50%); color:#8cecff !important; white-space:nowrap; }
+.zombie-overlay { position:absolute; inset:0; display:grid; place-items:center; z-index:30; background:#061016dc; pointer-events:auto; overflow:auto; padding:16px; }
+.zombie-panel { width:min(95%,435px); border:1px solid #679096; padding:clamp(16px,3vh,30px); border-radius:14px; background:linear-gradient(150deg,#10242c,#050c12); text-align:center; box-shadow:0 10px 55px #0009; }
+.zombie-eyebrow { color:#64bfc7; font-size:10px; letter-spacing:.3em; }
+.zombie-panel h1 { margin:4px 0 7px; font:900 clamp(30px,6vh,54px)/1.05 system-ui,sans-serif; letter-spacing:.1em; color:#fa9a5c; }
+.zombie-panel p { margin:8px 0; font-size:13px; color:#d6dddc; font-weight:400; }
+.zombie-panel .zombie-hint { font-size:10px; color:#9dc0c8; }
+.zombie-panel button { margin:7px 5px 0; }
+.zombie-panel .zombie-start { display:block; width:100%; background:#bd522e !important; border-color:#ffa878; font-size:14px; min-height:45px; }
+.zombie-panel .zombie-secondary { font-size:10px; padding:8px 13px; }
+@media (orientation: portrait) {
+ .zombie-root { position:absolute; left:50%; top:50%; width:100dvh; height:100dvw; transform:translate(-50%,-50%) rotate(-90deg); }
+}
+@container game (max-width:590px) {
+ .zombie-top { gap:7px; padding:4px 7px; }
+ .zombie-brand strong { font-size:12px; }
+ .zombie-brand span { font-size:6px; }
+ .zombie-health { min-width:75px; }
+ .zombie-wave strong { font-size:12px; }
+ .zombie-kills strong { font-size:13px; }
+ .zombie-fire { right:131px; bottom:18px; width:65px; height:65px; }
+ .zombie-jump { right:131px; bottom:93px; width:60px; height:39px; }
+ .zombie-ammo { top:55px; }
+}
