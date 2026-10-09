@@ -13,7 +13,8 @@ import './zombie.css';
 
 import { ArmedSurvivor } from './survivor';
 import { WEAPONS, DISMEMBERMENT, damageFor, severable, nearestHit, wallDistance, routeAround, type Weapon, type Region } from './combat';
-import { shareSkeletons, bodySpheres, detachRegion, updateDebris, disposeDebris, type Debris } from './bodyParts';
+import { shareSkeletons, bodySpheres, detachRegion, updateDebris, disposeDebris, positionDamagedZombie, type Debris } from './bodyParts';
+import { ZombieAudio } from './audio';
 import { BloodEffects } from './bloodEffects';
 import { ShotTrails } from './shotTrails';
 import { getTuning } from './tuning';
@@ -29,7 +30,7 @@ type Hud = {
 type Enemy = {
   root: THREE.Group; mixer: THREE.AnimationMixer | null; action: THREE.AnimationAction | null;
   model: Model | null; missing: Set<Region>; anim: string; reactUntil: number; waypoint: THREE.Vector2 | null; routeAt: number;
-  x: number; z: number; hp: number; speed: number; hitAt: number; deadAt: number; baseVisualY:number;
+  x: number; z: number; hp: number; speed: number; hitAt: number; deadAt: number; baseVisualY:number; nextVocalAt:number;
 };
 const INITIAL_HUD: Hud = { health: 100, wave: 0, kills: 0, alive: 0, queued: 0, ammo: 12, reserve: 96, weapon: 'pistol', reloading: false, countdown: 0, over: false, ready: false, notice: 'LOADING THE CITY...', portal: false, hit: false, hurt: false, score:0, multiplier:1, combo:0, callout:'' };
 const HUBSIDE_URL = 'https://preview--55efd0b1-9368-4172-9456-53db458ef667.aippy.live';
@@ -95,6 +96,7 @@ class ZombieEngine {
   private debris: Debris[] = [];
   private blood: BloodEffects;
   private trails: ShotTrails;
+  private audio = new ZombieAudio();
   private scoreState:ScoreState=newScore();
   private callout='';
   private calloutUntil=0;
@@ -228,32 +230,35 @@ class ZombieEngine {
     const list: Weapon[] = ['pistol', 'rifle', 'shotgun'];
     this.equip(list[(list.indexOf(this.weapon) + 1) % list.length]);
   }
-  setPaused(value: boolean) { this.paused = value; this.clearInputs(); this.emitHud(); }
+  setPaused(value: boolean) { this.paused = value; this.clearInputs();if(!value)this.audio.unlock(); this.emitHud(); }
 
   clearInputs() { this.firing = false; this.keys.clear(); this.move({ x: 0, y: 0 }); this.look({ x: 0, y: 0 }); }
 
   equip(weapon: Weapon) {
     this.weapon = weapon; this.reloadTimer = 0; this.firing = false;
     this.avatar?.equip(weapon);
+    if(this.ready&&!this.paused)this.audio.play('reload');
     this.emitHud();
   }
   reload() {
     if (this.paused || this.over || this.reloadTimer > 0) return;
     if (this.ammo[this.weapon] === WEAPONS[this.weapon].rounds || this.reserve[this.weapon] <= 0) return;
     this.reloadTimer = this.weapon==='pistol'?getTuning().reloadPistol:this.weapon==='rifle'?getTuning().reloadRifle:getTuning().reloadShotgun;
+    this.audio.play('reload');
     this.emitHud();
   }
   private shoot() {
     if (this.paused || this.over || !this.ready || this.reloadTimer > 0) return;
     const now = this.elapsed;
     if (now < this.nextShot) return;
-    if (this.ammo[this.weapon] <= 0) { this.reload(); return; }
+    if (this.ammo[this.weapon] <= 0) { this.audio.play('empty');this.reload(); return; }
     const t=getTuning();
     const delay=this.weapon==='pistol'?t.pistolDelay:this.weapon==='rifle'?t.rifleDelay:t.shotgunDelay;
     this.nextShot = now + delay;
     this.muzzleUntil = now + t.flashTime;
     this.ammo[this.weapon]--;
     this.avatar?.shot();
+    this.audio.play(this.weapon);
     this.cameraKick = Math.min(.9, this.cameraKick + (this.weapon === 'shotgun' ? t.kickShotgun : this.weapon === 'pistol' ? t.kickPistol : t.kickRifle));
     if (this.hapticsEnabled && typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
       try { navigator.vibrate(Math.round(this.weapon === 'shotgun' ? t.hapticShotgun : this.weapon === 'pistol' ? t.hapticPistol : t.hapticRifle)); } catch { /* WebView may not support vibration. */ }
@@ -286,6 +291,7 @@ class ZombieEngine {
       const muzzleRay = new THREE.Ray(muzzle, target.point.clone().sub(muzzle).normalize());
       if (wallDistance(muzzleRay, this.world.colliders) + .03 < muzzle.distanceTo(target.point)) continue;
       const enemy = target.enemy, region = target.region;
+      this.audio.play('hurt', new THREE.Vector3(enemy.x,enemy.root.position.y+1,enemy.z),'hurt-'+enemy.root.id);
       const damage = shotDamage * (region === 'head' ? 3 : region === 'torso' ? 1 : .7);
       enemy.hp -= damage; enemy.reactUntil = now + .32; this.hitUntil = now + .16;
       this.blood.burst(target.point, direction, this.weapon === 'shotgun' ? 12 : 7,
@@ -309,6 +315,7 @@ class ZombieEngine {
     if (enemy.deadAt > 0) return;
     enemy.deadAt = Math.max(.000001,this.elapsed);
     this.kills++;
+    this.audio.play(enemy.missing.has('head')?'critical':'death',new THREE.Vector3(enemy.x,enemy.root.position.y+1,enemy.z),'death-'+enemy.root.id);
     const awarded=awardKill(this.scoreState,this.elapsed,enemy.missing.has('head'),enemy.missing.size>0);
     this.scoreState=awarded.next;
     if (this.elapsed-this.lastCallout>1.8 && (this.scoreState.comboCount>=2 || enemy.missing.size>0 || Math.random()<.35)) {
@@ -353,7 +360,8 @@ class ZombieEngine {
       if (clip) { action = mixer.clipAction(clip); action.play(); }
     }
     this.enemies.push({ root: body, model, mixer, action, anim: 'Run_Arms', missing: new Set(), reactUntil: 0, waypoint: null, routeAt: 0, x, z, hp: model === this.variants[1] ? getTuning().heavyZombieHP : getTuning().baseZombieHP + Math.min(60,this.wave*4),
-      speed: getTuning().zombieSpeed + this.wave * getTuning().speedPerWave + Math.random() * .35, hitAt: 0, deadAt: 0, baseVisualY:visual.position.y });
+      speed: getTuning().zombieSpeed + this.wave * getTuning().speedPerWave + Math.random() * .35, hitAt: 0, deadAt: 0, baseVisualY:visual.position.y, nextVocalAt:this.elapsed+2+Math.random()*6 });
+    this.audio.play('alert',new THREE.Vector3(x,body.position.y+1,z),'alert-'+body.id);
     this.queued--;
   }
   private updateEnemy(enemy: Enemy, delta: number, now: number) {
@@ -372,6 +380,10 @@ class ZombieEngine {
       }
     }
     enemy.mixer?.update(delta);
+    if(enemy.deadAt<=0 && now>=enemy.nextVocalAt){
+      this.audio.play(crawling?'crawl':'idle',new THREE.Vector3(enemy.x,enemy.root.position.y+.8,enemy.z),'idle-'+enemy.root.id);
+      enemy.nextVocalAt=now + Math.max(1,getTuning().zombieGroanInterval)*(.5+Math.random());
+    }
     if (enemy.deadAt > 0) {
       if (now - enemy.deadAt > getTuning().corpseTime) {
         enemy.mixer?.stopAllAction();
@@ -404,6 +416,7 @@ class ZombieEngine {
     } else if (now - enemy.hitAt > t.attackInterval && Math.abs(this.world.playerPosition.y - enemy.root.position.y - 1.72) < 1.1 &&
       wallDistance(new THREE.Ray(new THREE.Vector3(enemy.x,enemy.root.position.y+1,enemy.z),new THREE.Vector3(dx,0,dz).normalize()),this.world.colliders) > length) {
       enemy.hitAt = now;
+      this.audio.play('attack',new THREE.Vector3(enemy.x,enemy.root.position.y+.8,enemy.z),'attack-'+enemy.root.id);
       if (this.developerPanelOpen && t.safeWhileTuning >= .5) return true;
       this.health = Math.max(0, this.health - t.attackDamage);
       this.hurtUntil = now + .52;
@@ -411,15 +424,13 @@ class ZombieEngine {
       if (this.health <= 0) { this.over = true; this.firing = false; this.notice = 'YOU WERE OVERRUN'; }
       this.emitHud();
     }
-    // One-legged zombies hop on the surviving leg; those losing both legs crawl close to the ground.
+    // Ground alignment follows the actual surviving foot for hoppers, torso for crawlers.
+    // Do not add bobbing to the whole zombie root (that caused the old floating bugs).
     const floor=getGroundHeight(this.world,enemy.x,enemy.z);
-    const bob=hopping?Math.max(0,Math.sin(now*t.hopFrequency))*t.hopHeight:0;
-    enemy.root.position.set(enemy.x,floor+bob,enemy.z);
-    const visual=enemy.root.children[0];
-    if(visual) {
-      visual.position.y = enemy.baseVisualY + (crawling ? -.57 : hopping ? -.07 : 0);
-      visual.rotation.x = crawling ? -.65 : 0;
-    }
+    enemy.root.position.set(enemy.x,floor,enemy.z);
+    const visual=enemy.root.children[0] as THREE.Group | undefined;
+    if(visual)positionDamagedZombie(enemy.root,visual,enemy.missing,enemy.baseVisualY,
+      floor,now,t.hopHeight,t.hopFrequency);
     return true;
   }
 
@@ -453,6 +464,7 @@ class ZombieEngine {
       for (let i=this.debris.length-1;i>=0;i--) if(!updateDebris(this.debris[i],dt)) { disposeDebris(this.debris[i]);this.debris.splice(i,1); }
       this.blood.update(dt, (x,z) => getGroundHeight(this.world,x,z));
       this.trails.update(dt);
+      this.audio.update(this.world.playerPosition,this.world.camera.getWorldDirection(new THREE.Vector3()));
       this.enemies = this.enemies.filter(e => this.updateEnemy(e, dt, now));
       const alive = this.enemies.filter(e => e.deadAt <= 0).length;
       if (this.queued > 0 && alive < getTuning().zombieCap) {
@@ -534,6 +546,7 @@ class ZombieEngine {
     this.debris.forEach(disposeDebris); this.debris=[];
     this.blood.dispose();
     this.trails.dispose();
+    this.audio.dispose();
     this.avatar?.dispose();
     this.scenery.forEach(root=>{root.traverse(o=>{if(o instanceof THREE.SkinnedMesh)o.skeleton.dispose();});root.removeFromParent();});
     this.sources.forEach(m=>release(m.scene));

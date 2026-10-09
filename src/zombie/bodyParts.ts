@@ -62,13 +62,20 @@ export function detachRegion(root:THREE.Group,region:Region,impulse:THREE.Vector
  // Freeze at the impact pose, then simulate an outward impulse. No heavy physics dependency.
  // Some source files also include unskinned footwear. Prevent a detached foot from staying on the walker.
  if(region.startsWith('leg-')) {
-   const side=region.endsWith('-l')?'l':'r';
+   const side=region.endsWith('-l')?'L':'R';
    root.traverse(o=>{
      if(!(o instanceof THREE.Mesh) || o instanceof THREE.SkinnedMesh || !o.visible)return;
-     const label=o.name.toLowerCase();
+     const label=o.name.toLowerCase(), letter=side.toLowerCase();
      if(/foot|shoe|ankle|toe/.test(label) &&
-       (label.endsWith(side) || label.includes('.'+side) || label.includes('_'+side)))o.visible=false;
+       (label.endsWith(letter) || label.includes('.'+letter) || label.includes('_'+letter)))o.visible=false;
    });
+   // The prepared part segmentation can leave a few foot-weighted triangles on
+   // the original torso mesh. Collapse the severed foot chain, never the support foot.
+   for(const segment of ['Foot.','LowerLeg.']) {
+     const limb=bone(root,segment+side,segment.replace('.','')+side);
+     if(limb)limb.scale.setScalar(0.001);
+   }
+   root.updateMatrixWorld(true);
  }
  return {root:group,velocity:impulse.clone().normalize().multiplyScalar(tuning.debrisForce).add(new THREE.Vector3(0,tuning.debrisLift,0)),
  age:0,spin:new THREE.Vector3(3+Math.random()*4,2+Math.random()*3,4+Math.random()*3),floor:root.position.y,rest:0};
@@ -101,4 +108,44 @@ export function updateDebris(piece:Debris,dt:number):boolean {
    }});
  }
  return true;
+}
+
+// Keep surviving anatomy above the terrain without expensive per-frame mesh bounds.
+// bone names are sanitised by glTFLoader (Foot.L -> FootL).
+function bone(root:THREE.Group,...names:string[]): THREE.Object3D|null {
+ for(const name of names) {
+  const found=root.getObjectByName(name)||root.getObjectByName(name.replace(/\./g,''));
+  if(found)return found;
+ }
+ return null;
+}
+export function positionDamagedZombie(
+ root:THREE.Group, visual:THREE.Group, missing:Set<Region>,
+ originalY:number,floor:number,now:number,
+ hopHeight:number,hopFrequency:number,
+) {
+ const left=missing.has('leg-l'),right=missing.has('leg-r');
+ visual.rotation.x=left&&right ? -.56 : 0;
+ visual.position.y=originalY;
+ root.position.y=floor;
+ root.updateMatrixWorld(true);
+ if(left&&right) {
+   // Ground-align on the torso, NOT the old pre-rotation feet; avoids buried heads.
+   const torso=bone(visual,'Abdomen','Torso','Spine');
+   if(torso){
+     const y=torso.getWorldPosition(new THREE.Vector3()).y;
+     visual.position.y+=floor+.54-y;
+   }
+   return;
+ }
+ if(left||right) {
+   // One surviving planted foot determines the ground contact point.
+   const standingFoot=right?bone(visual,'Foot.L','FootL'):bone(visual,'Foot.R','FootR');
+   if(standingFoot) {
+     const fy=standingFoot.getWorldPosition(new THREE.Vector3()).y;
+     // Small, short hops, never a 0.2m permanent floating offset.
+     const hop=Math.max(0,Math.sin(now*hopFrequency))*Math.min(.11,hopHeight);
+     visual.position.y += (floor + .06 + hop) - fy;
+   }
+ }
 }
