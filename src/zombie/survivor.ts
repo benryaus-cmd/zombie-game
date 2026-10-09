@@ -49,12 +49,18 @@ export class ArmedSurvivor {
   }
  }
  muzzlePosition() {this.root.updateMatrixWorld(true);return this.muzzle.getWorldPosition(new THREE.Vector3());}
- shot() {this.recoil=.09;}
+ shot() {
+   const force = this.gun?.name === 'Shotgun' ? 1.35 : this.gun?.name === 'Rifle' ? .58 : .9;
+   this.recoil = Math.min(1.75, this.recoil + force);
+ }
  animate(dt:number,walking:boolean,airborne:boolean,target:THREE.Vector3,reloading:boolean) {
   const wanted=airborne?'Jump_Idle':walking?'Run_Gun':'Idle_Gun';
   const name=this.actions.has(wanted)?wanted:'Idle_Gun';
   if(this.action!==name){const next=this.actions.get(name),previous=this.actions.get(this.action);if(next){next.reset().play();if(previous)next.crossFadeFrom(previous,.15,false);}this.action=name;}
-  this.mixer.update(dt);this.recoil=Math.max(0,this.recoil-dt);this.reloadElapsed=reloading?this.reloadElapsed+dt:0;
+  this.mixer.update(dt);
+   // Recoil pushes the aiming shoulder and weapon backward, then settles naturally.
+   this.recoil = Math.max(0, this.recoil - dt * 7.5);
+   this.reloadElapsed = reloading ? this.reloadElapsed + dt : 0;
   if(this.gun && this.torso) {
    this.root.updateMatrixWorld(true);
    const gunDirection=BARREL_DIRECTION.clone().transformDirection(this.gun.matrixWorld);
@@ -63,12 +69,19 @@ export class ArmedSurvivor {
    const parent=this.torso.parent!.matrixWorld;
    const local=new THREE.Quaternion().setFromRotationMatrix(parent.clone().invert().multiply(new THREE.Matrix4().makeRotationFromQuaternion(delta)).multiply(parent));
    this.torso.quaternion.premultiply(local);
-   if(this.recoil>0)this.torso.rotateX(-this.recoil*.8);
+   if (this.recoil > 0) {
+     this.torso.rotateX(-this.recoil * .12);
+     this.torso.rotateZ(this.recoil * .026);
+     // Primary hand follows the authored firearm grip; its shoulder absorbs the shot.
+     const shootingArm = this.root.getObjectByName('UpperArmL');
+     if (shootingArm) shootingArm.rotateX(-this.recoil * .16);
+    }
    if(reloading)this.torso.rotateX(Math.sin(this.reloadElapsed*5)*.12+.15);
    this.root.updateMatrixWorld(true);
    if(this.gun.name!=='Pistol')this.supportHand(this.gun.localToWorld(new THREE.Vector3(.413,.094,.166)));
   }
-  this.flash.visible=this.recoil>.015;
+  this.flash.visible=this.recoil>.38;
+   this.flash.scale.setScalar(1 + this.recoil * .8);
  }
  private supportHand(target:THREE.Vector3) {
   const upper=this.root.getObjectByName('UpperArmR'),lower=this.root.getObjectByName('LowerArmR'),hand=this.root.getObjectByName('Middle1R');

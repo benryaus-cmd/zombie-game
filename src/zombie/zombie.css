@@ -23,18 +23,9 @@
 .zombie-reticle { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); color:#fff; text-shadow:0 0 4px #000; font-size:29px; font-weight:300; }
 .zombie-controls { position:absolute; inset:0; pointer-events:none; }
 .zombie-controls .joystick { bottom:17px; width:clamp(90px,18cqw,120px); height:clamp(90px,18cqw,120px); background:#07141a96; border:2px solid #afdce077; z-index:12; pointer-events:auto; }
-.zombie-controls .joystick:not(.look-joystick) { left:19px; }
-.zombie-controls .look-joystick { right:19px !important; left:auto !important; }
 .zombie-controls .joystick-knob { background:#41717f5c; }
-.zombie-fire { position:absolute; right:151px; bottom:21px; border-radius:50% !important; width:80px; height:80px; background:#ba3d28e8 !important; border:2px solid #ffd0af !important; font-size:15px; box-shadow:0 0 18px #ff441e40; }
 .zombie-jump { position:absolute; right:155px; bottom:116px; width:66px; height:48px; font-size:11px; }
 .zombie-ammo { position:absolute; right:9px; top:64px; display:grid; justify-items:end; gap:3px; font-variant-numeric:tabular-nums; font-size:10px; }
-.zombie-ammo > span { color:#ffcb72; }
-.zombie-ammo > b { font-size:18px; color:#f7f7ed; }
-.zombie-ammo > button { font-size:9px; padding:4px 8px; }
-.zombie-weapons { display:flex; gap:3px; margin-top:5px; }
-.zombie-weapons button { font-size:9px; padding:7px !important; }
-.zombie-weapons button.active { border-color:#ff9a54 !important; background:#733c24 !important; }
 .zombie-next-wave { position:absolute; top:32%; left:50%; transform:translateX(-50%); border:1px solid #ffc77780; background:#0a1619bd; padding:7px 15px; white-space:nowrap; color:#ffe0a3; letter-spacing:.1em; }
 .zombie-portal-link { position:absolute; bottom:169px; left:50%; transform:translateX(-50%); color:#8cecff !important; white-space:nowrap; }
 .zombie-overlay { position:absolute; inset:0; display:grid; place-items:center; z-index:30; background:#061016dc; pointer-events:auto; overflow:auto; padding:16px; }
@@ -54,14 +45,12 @@
  .zombie-health { min-width:75px; }
  .zombie-wave strong { font-size:12px; }
  .zombie-kills strong { font-size:13px; }
- .zombie-fire { right:131px; bottom:18px; width:65px; height:65px; }
  .zombie-jump { right:131px; bottom:93px; width:60px; height:39px; }
  .zombie-ammo { top:55px; }
 }
 
 .zombie-top { padding-top:max(7px,env(safe-area-inset-top)); }
 .zombie-controls .joystick { bottom:max(20px,env(safe-area-inset-bottom)); }
-.zombie-fire { touch-action:none !important; }
 .zombie-orientation { display:flex; justify-content:center; gap:6px; margin:10px 0; }
 .zombie-orientation button[aria-pressed="true"] { border-color:#ff9a54; background:#733c24; }
 @container game (max-aspect-ratio: 1/1) {
@@ -76,12 +65,7 @@
  .zombie-ammo { left:14px; right:14px; top:auto; bottom:calc(max(20px,env(safe-area-inset-bottom)) + 218px); grid-template-columns:1fr auto auto; align-items:center; justify-items:start; gap:7px; }
  .zombie-ammo > b { font-size:17px; }
  .zombie-ammo > button { min-height:36px; padding:7px 12px; }
- .zombie-weapons { grid-column:1 / -1; width:100%; margin:0; }
- .zombie-weapons button { flex:1; min-height:35px; }
  .zombie-controls .joystick { width:108px; height:108px; }
- .zombie-controls .joystick:not(.look-joystick) { left:max(18px,env(safe-area-inset-left)); }
- .zombie-controls .look-joystick { right:max(18px,env(safe-area-inset-right)) !important; }
- .zombie-fire { right:29px; bottom:calc(max(20px,env(safe-area-inset-bottom)) + 127px); width:78px; height:78px; }
  .zombie-jump { right:auto; left:37px; bottom:calc(max(20px,env(safe-area-inset-bottom)) + 139px); width:66px; height:48px; }
  .zombie-portal-link { bottom:calc(max(20px,env(safe-area-inset-bottom)) + 304px); font-size:10px; }
  .zombie-next-wave { top:27%; font-size:10px; }
@@ -89,8 +73,52 @@
 @container game (max-height: 680px) and (max-aspect-ratio: 1/1) {
  .zombie-ammo { bottom:calc(max(14px,env(safe-area-inset-bottom)) + 185px); }
  .zombie-controls .joystick { width:96px; height:96px; bottom:max(14px,env(safe-area-inset-bottom)); }
- .zombie-fire { bottom:calc(max(14px,env(safe-area-inset-bottom)) + 110px); width:64px; height:64px; }
  .zombie-jump { bottom:calc(max(14px,env(safe-area-inset-bottom)) + 115px); }
  .zombie-portal-link { bottom:calc(max(14px,env(safe-area-inset-bottom)) + 270px); }
 }
 .zombie-reticle.hit { color:#ffb276; transform:translate(-50%,-50%) scale(1.3); }
+
+/* Simplified touch HUD: swipe open space to aim, double-tap to fire, hold second tap to auto-fire. */
+.zombie-root .world-mount { touch-action:none; }
+.zombie-damage-flash { position:absolute; inset:0; z-index:1; pointer-events:none;
+  box-shadow:inset 0 0 115px 38px #cd1a195c; background:radial-gradient(ellipse at center, transparent 45%, #9905083a 100%); }
+.zombie-ammo {
+  position:absolute; left:auto; top:auto; right:max(15px,env(safe-area-inset-right));
+  bottom:max(25px,env(safe-area-inset-bottom)); width:auto;
+  display:flex; flex-direction:row-reverse; align-items:end; justify-content:end; gap:6px;
+  font-variant-numeric:tabular-nums; z-index:12; pointer-events:none;
+}
+.zombie-ammo .zombie-weapon-cycle { pointer-events:auto; display:flex; flex-direction:column; justify-content:center;
+  gap:3px; min-width:124px; min-height:93px; text-align:left;
+  padding:11px 13px; border:2px solid #ed995a; border-radius:13px;
+  background:linear-gradient(145deg,#4c281edc,#111d24f2); box-shadow:0 3px 16px #0009;
+}
+.zombie-weapon-cycle strong { color:#ffbb84; font-size:15px; letter-spacing:.035em; }
+.zombie-weapon-cycle span { color:#f8f9f1; font-size:20px; letter-spacing:0; }
+.zombie-weapon-cycle small { color:#b9bcb5; font-size:9px; letter-spacing:.04em; }
+.zombie-ammo .zombie-reload { pointer-events:auto; padding:10px 8px; font-size:10px;
+  min-height:40px; min-width:69px; background:#0b1a23ed; }
+.zombie-jump { right:auto; left:max(28px,env(safe-area-inset-left)); bottom:145px; width:70px; height:47px; }
+.zombie-controls .joystick:not(.look-joystick) { left:max(18px,env(safe-area-inset-left)); bottom:max(18px,env(safe-area-inset-bottom)); }
+.zombie-orientation { flex-wrap:wrap; }
+.zombie-orientation button[aria-pressed="true"] { border-color:#ff9a54; background:#733c24; }
+@container game (max-aspect-ratio: 1/1) {
+  .zombie-ammo { left:auto; top:auto; right:max(14px,env(safe-area-inset-right));
+    bottom:max(31px,env(safe-area-inset-bottom)); width:auto; display:flex; flex-direction:row-reverse;
+    align-items:flex-end; gap:6px; }
+  .zombie-ammo .zombie-weapon-cycle { min-width:122px; min-height:93px; }
+  .zombie-jump { left:max(30px,env(safe-area-inset-left));
+    bottom:calc(max(20px,env(safe-area-inset-bottom)) + 120px); }
+}
+@container game (max-height: 680px) and (max-aspect-ratio: 1/1) {
+  .zombie-ammo { left:auto; right:12px; bottom:max(18px,env(safe-area-inset-bottom)); }
+  .zombie-ammo .zombie-weapon-cycle { min-height:80px; min-width:112px; padding:7px 10px; }
+  .zombie-weapon-cycle span { font-size:17px; }
+  .zombie-jump { bottom:calc(max(16px,env(safe-area-inset-bottom)) + 102px); }
+}
+@container game (max-width: 350px) {
+  .zombie-ammo .zombie-weapon-cycle { min-width:95px; padding:8px; }
+  .zombie-weapon-cycle strong { font-size:12px; }
+  .zombie-weapon-cycle span { font-size:15px; }
+  .zombie-ammo .zombie-reload { min-width:50px; font-size:9px; }
+}

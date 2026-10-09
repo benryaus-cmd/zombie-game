@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import { isTap, isSecondTap } from '../src/zombie/controls.ts';
+const first = { x: 180, y: 450, at: 100 };
+assert.equal(isTap(first, { x: 183, y: 452, at: 180 }), true, 'quick tap accepted');
+assert.equal(isTap(first, { x: 260, y: 452, at: 180 }), false, 'swipe is not a tap');
+assert.equal(isTap(first, { x: 180, y: 450, at: 550 }), false, 'long press alone is not a tap');
+assert.equal(isSecondTap({ x: 183, y: 452, at: 180 }, { x: 200, y: 452, at: 400 }), true, 'second tap accepted');
+assert.equal(isSecondTap({ x: 183, y: 452, at: 180 }, { x: 200, y: 452, at: 650 }), false, 'slow taps ignored');
+assert.equal(isSecondTap({ x: 183, y: 452, at: 180 }, { x: 650, y: 452, at: 400 }), false, 'distant taps ignored');
+assert.equal(isSecondTap(null, first), false, 'first tap never shoots');
+console.log('Zombie open-space double-tap gesture checks PASS');

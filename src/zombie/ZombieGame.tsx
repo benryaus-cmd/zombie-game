@@ -2,31 +2,31 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import MovementJoystick from '@/components/MovementJoystick';
-import LookJoystick from '@/components/LookJoystick';
 import { loadModel, release, type Model } from '@/game/assetPreview';
 import { createWorld } from '@/game/createWorld';
 import { disposeWorld } from '@/game/disposeWorld';
 import { advanceWorld, jumpWorld, getGroundHeight } from '@/game/worldMovement';
 import { advanceWeather, applySkyLighting } from '@/game/skyEffects';
 import type { LiveSettings, LookInput, MovementInput, WorldEngine } from '@/game/worldTypes';
-import { aimAngles, dragDelta, readOrientation, releaseFirePointer, ORIENTATION_KEY, type Orientation } from './controls';
+import { aimAngles, dragDelta, readOrientation, isTap, isSecondTap, type ScreenTap, ORIENTATION_KEY, type Orientation } from './controls';
 import './zombie.css';
 
 import { ArmedSurvivor } from './survivor';
 import { WEAPONS, DISMEMBERMENT, damageFor, severable, nearestHit, wallDistance, routeAround, type Weapon, type Region } from './combat';
 import { shareSkeletons, bodySpheres, detachRegion, updateDebris, disposeDebris, type Debris } from './bodyParts';
+import { BloodEffects } from './bloodEffects';
 type Hud = {
   health: number; wave: number; kills: number; alive: number; queued: number;
   ammo: number; reserve: number; weapon: Weapon; reloading: boolean;
   countdown: number; over: boolean; ready: boolean; notice: string;
-  portal: boolean; hit: boolean;
+  portal: boolean; hit: boolean; hurt: boolean;
 };
 type Enemy = {
   root: THREE.Group; mixer: THREE.AnimationMixer | null; action: THREE.AnimationAction | null;
   model: Model | null; missing: Set<Region>; anim: string; reactUntil: number; waypoint: THREE.Vector2 | null; routeAt: number;
   x: number; z: number; hp: number; speed: number; hitAt: number; deadAt: number;
 };
-const INITIAL_HUD: Hud = { health: 100, wave: 0, kills: 0, alive: 0, queued: 0, ammo: 12, reserve: 96, weapon: 'pistol', reloading: false, countdown: 0, over: false, ready: false, notice: 'LOADING THE CITY...', portal: false, hit: false };
+const INITIAL_HUD: Hud = { health: 100, wave: 0, kills: 0, alive: 0, queued: 0, ammo: 12, reserve: 96, weapon: 'pistol', reloading: false, countdown: 0, over: false, ready: false, notice: 'LOADING THE CITY...', portal: false, hit: false, hurt: false };
 const HUBSIDE_URL = 'https://aippy.ai/@PinkYyyy/street-art-canvas-aV7b';
 const ASSET_BASE = import.meta.env.BASE_URL + 'assets/zombie-kit/';
 const REMOTE_ASSET_BASE = 'https://raw.githubusercontent.com/benryaus-cmd/zombie-game/513a481f60e5f6756d4c06233952587509e5ab8e/public/assets/zombie-kit/';
@@ -88,6 +88,10 @@ class ZombieEngine {
   private sources: Model[] = [];
   private variants: Model[] = [];
   private debris: Debris[] = [];
+  private blood: BloodEffects;
+  private cameraKick = 0;
+  private hurtUntil = 0;
+  private hapticsEnabled = true;
   private scenery: THREE.Group[] = [];
   private hitUntil = 0;
   private portal: THREE.Group;
@@ -128,6 +132,7 @@ class ZombieEngine {
 
   constructor(private container: HTMLDivElement, private onHud: (state: Hud) => void) {
     this.world = createWorld(container, .06, 'map2');
+    this.blood = new BloodEffects(this.world.scene);
     this.world.cameraMode = 'third';
     this.world.playerPitch = -.08;
     this.world.botsEnabled = false;
@@ -189,6 +194,7 @@ class ZombieEngine {
 
   move = (input: MovementInput) => { this.controls.movement = input; };
   look = (input: LookInput) => { this.controls.lookInput = input; };
+  setHaptics(enabled: boolean) { this.hapticsEnabled = enabled; }
   dragLook(dx: number, dy: number) {
     if (this.paused || this.over) return;
     this.world.playerYaw -= dx * .006;
@@ -204,6 +210,10 @@ class ZombieEngine {
   }
   jump = () => { if (!this.paused && !this.over) jumpWorld(this.world, this.controls.jumpPower); };
   fire = (down: boolean) => { this.firing = down; if (down) this.shoot(); };
+  cycleWeapon() {
+    const list: Weapon[] = ['pistol', 'rifle', 'shotgun'];
+    this.equip(list[(list.indexOf(this.weapon) + 1) % list.length]);
+  }
   setPaused(value: boolean) { this.paused = value; this.clearInputs(); this.emitHud(); }
 
   clearInputs() { this.firing = false; this.keys.clear(); this.move({ x: 0, y: 0 }); this.look({ x: 0, y: 0 }); }
@@ -228,6 +238,10 @@ class ZombieEngine {
     this.muzzleUntil = now + .08;
     this.ammo[this.weapon]--;
     this.avatar?.shot();
+    this.cameraKick = Math.min(.24, this.cameraKick + (this.weapon === 'shotgun' ? .15 : this.weapon === 'pistol' ? .082 : .043));
+    if (this.hapticsEnabled && typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      try { navigator.vibrate(this.weapon === 'shotgun' ? 17 : this.weapon === 'pistol' ? 10 : 7); } catch { /* WebView may not support vibration. */ }
+    }
     const camera = this.world.camera, config = WEAPONS[this.weapon];
     const base = camera.getWorldDirection(new THREE.Vector3());
     const right = new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);
@@ -252,11 +266,14 @@ class ZombieEngine {
       const enemy = target.enemy, region = target.region;
       const damage = damageFor(this.weapon, region);
       enemy.hp -= damage; enemy.reactUntil = now + .32; this.hitUntil = now + .16;
+      this.blood.burst(target.point, direction, this.weapon === 'shotgun' ? 12 : 7,
+        getGroundHeight(this.world,enemy.x,enemy.z), enemy.hp <= 0);
       if (!enemy.missing.has(region) && severable(this.weapon,region,target.distance) &&
           (region === 'head' || enemy.hp <= 0 || damage >= DISMEMBERMENT.limbDamage)) {
         const piece = detachRegion(enemy.root,region,direction);
         if (piece) {
           this.world.scene.add(piece.root); this.debris.push(piece); enemy.missing.add(region);
+          this.blood.burst(target.point, direction, 22, getGroundHeight(this.world,enemy.x,enemy.z), true);
           if (region === 'head') enemy.hp = 0;
           while (this.debris.length > DISMEMBERMENT.maxDebris) disposeDebris(this.debris.shift()!);
         }
@@ -270,6 +287,9 @@ class ZombieEngine {
     if (enemy.deadAt > 0) return;
     enemy.deadAt = Math.max(.000001,this.elapsed);
     this.kills++;
+    this.blood.burst(new THREE.Vector3(enemy.x, enemy.root.position.y + 1.05, enemy.z),
+      new THREE.Vector3(Math.random() - .5, .45, Math.random() - .5).normalize(),
+      this.weapon === 'shotgun' ? 20 : 12, getGroundHeight(this.world, enemy.x, enemy.z), true);
     if (enemy.mixer && enemy.model) {
       const death = enemy.model.animations.find(c => /death/i.test(c.name));
       if (death) {
@@ -352,6 +372,8 @@ class ZombieEngine {
       wallDistance(new THREE.Ray(new THREE.Vector3(enemy.x,enemy.root.position.y+1,enemy.z),new THREE.Vector3(dx,0,dz).normalize()),this.world.colliders) > length) {
       enemy.hitAt = now;
       this.health = Math.max(0, this.health - 11);
+      this.hurtUntil = now + .52;
+      this.cameraKick = Math.max(this.cameraKick, .17);
       if (this.health <= 0) { this.over = true; this.firing = false; this.notice = 'YOU WERE OVERRUN'; }
       this.emitHud();
     }
@@ -385,6 +407,7 @@ class ZombieEngine {
       }
       if (this.firing) this.shoot();
       for (let i=this.debris.length-1;i>=0;i--) if(!updateDebris(this.debris[i],dt)) { disposeDebris(this.debris[i]);this.debris.splice(i,1); }
+      this.blood.update(dt, (x,z) => getGroundHeight(this.world,x,z));
       this.enemies = this.enemies.filter(e => this.updateEnemy(e, dt, now));
       const alive = this.enemies.filter(e => e.deadAt <= 0).length;
       if (this.queued > 0 && alive < 18) {
@@ -403,6 +426,13 @@ class ZombieEngine {
       }
       this.portalNear = Math.hypot(this.world.playerPosition.x - this.portal.position.x,
         this.world.playerPosition.z - this.portal.position.z) < 2.4;
+    }
+    // Positional screen shake: keep aim direction/crosshair stable.
+    if (!this.paused && this.cameraKick > 0) {
+      this.cameraKick = Math.max(0, this.cameraKick - dt * .65);
+      const right = new THREE.Vector3(1,0,0).applyQuaternion(this.world.camera.quaternion);
+      this.world.camera.position.addScaledVector(right, Math.sin(time * .075) * this.cameraKick * .23);
+      this.world.camera.position.y += Math.cos(time * .095) * this.cameraKick * .28;
     }
     this.world.renderer.render(this.world.scene, this.world.camera);
     if (time - this.lastHud > 180) { this.lastHud = time; this.emitHud(); }
@@ -425,6 +455,7 @@ class ZombieEngine {
   reset() {
     for (const enemy of this.enemies) this.removeEnemy(enemy);
     this.debris.forEach(disposeDebris); this.debris=[];
+    this.blood.clear(); this.cameraKick = 0; this.hurtUntil = 0;
     this.enemies = [];
     this.health = 100; this.wave = 0; this.kills = 0; this.queued = 0;
     this.countdown = 1.3; this.spawnTimer = 0; this.over = false; this.paused = false;
@@ -447,12 +478,13 @@ class ZombieEngine {
       alive: this.enemies.filter(e => e.deadAt <= 0).length, queued: this.queued,
       ammo: this.ammo[this.weapon], reserve: this.reserve[this.weapon], weapon: this.weapon,
       reloading: this.reloadTimer > 0, countdown: this.countdown,
-      over: this.over, ready: this.ready, notice: this.notice, portal: this.portalNear, hit: this.elapsed < this.hitUntil });
+      over: this.over, ready: this.ready, notice: this.notice, portal: this.portalNear, hit: this.elapsed < this.hitUntil, hurt: this.elapsed < this.hurtUntil });
   }
   dispose() {
     this.disposed = true; this.aborter.abort(); cancelAnimationFrame(this.frame);
     for (const enemy of this.enemies) this.removeEnemy(enemy);
     this.debris.forEach(disposeDebris); this.debris=[];
+    this.blood.dispose();
     this.avatar?.dispose();
     this.scenery.forEach(root=>{root.traverse(o=>{if(o instanceof THREE.SkinnedMesh)o.skeleton.dispose();});root.removeFromParent();});
     this.sources.forEach(m=>release(m.scene));
@@ -463,8 +495,8 @@ class ZombieEngine {
 
 export default function ZombieGame() {
   const mount = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ id: number; x: number; y: number } | null>(null);
-  const firePointer = useRef<number | null>(null);
+  const drag = useRef<{ id: number; x: number; y: number; start: ScreenTap; moved: boolean; firing: boolean } | null>(null);
+  const lastTap = useRef<ScreenTap | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const [orientation, setOrientation] = useState<Orientation>(() => { try { return readOrientation(localStorage.getItem(ORIENTATION_KEY)); } catch { return 'portrait'; } });
   const [rotated, setRotated] = useState(false);
@@ -474,7 +506,11 @@ export default function ZombieGame() {
   const [paused, setPaused] = useState(false);
   const [menu, setMenu] = useState(false);
   const onMove = useCallback((v: MovementInput) => engine.current?.move(v), []);
-  const onLook = useCallback((v: LookInput) => engine.current?.look(v), []);
+  const [haptics, setHaptics] = useState(() => { try { return localStorage.getItem('dead-city-haptics') !== 'off'; } catch { return true; } });
+  useEffect(() => {
+    engine.current?.setHaptics(haptics);
+    try { localStorage.setItem('dead-city-haptics', haptics ? 'on' : 'off'); } catch { /* Preference optional. */ }
+  }, [haptics]);
   useEffect(() => {
     if (!mount.current) return;
     const current = new ZombieEngine(mount.current, setHud);
@@ -486,21 +522,16 @@ export default function ZombieGame() {
       current.key(e.code, true);
     };
     const up = (e: KeyboardEvent) => current.key(e.code, false);
-    const pointerUp = (event: PointerEvent) => {
-      const next = releaseFirePointer(firePointer.current, event.pointerId);
-      if (next !== firePointer.current) { firePointer.current = next; current.fire(false); }
-    };
-    const blur = () => { firePointer.current = null; drag.current = null; current.clearInputs(); };
+    current.setHaptics(haptics);
+    const blur = () => { lastTap.current = null; drag.current = null; current.clearInputs(); };
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
-    window.addEventListener('pointerup', pointerUp);
-    window.addEventListener('pointercancel', pointerUp);
     window.addEventListener('blur', blur);
     window.addEventListener('resize', current.resize);
     return () => {
       observer.disconnect();
       window.removeEventListener('keydown', down); window.removeEventListener('keyup', up);
-      window.removeEventListener('pointerup', pointerUp); window.removeEventListener('pointercancel', pointerUp); window.removeEventListener('blur', blur);
+      window.removeEventListener('blur', blur);
       window.removeEventListener('resize', current.resize);
       engine.current = null; current.dispose();
     };
@@ -525,34 +556,41 @@ export default function ZombieGame() {
   };
   const pause = () => { engine.current?.setPaused(true); setPaused(true); setMenu(true); };
   const resume = () => { engine.current?.setPaused(false); setPaused(false); setMenu(false); };
-  const stopFire = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (firePointer.current !== event.pointerId) return;
-    firePointer.current = null; engine.current?.fire(false);
+  const releaseGesture = (event: React.PointerEvent<HTMLDivElement>, cancelled = false) => {
+    const current = drag.current;
+    if (!current || current.id !== event.pointerId) return;
+    if (current.firing) engine.current?.fire(false);
+    if (!cancelled && !current.firing && !current.moved) {
+      const end: ScreenTap = { x: event.clientX, y: event.clientY, at: event.timeStamp };
+      lastTap.current = isTap(current.start, end) ? end : null;
+    } else lastTap.current = null;
+    drag.current = null;
   };
   return <div ref={root} className={`zombie-root ${rotated ? 'game-portrait zombie-rotated' : ''}`} data-orientation={orientation}>
     <div ref={mount} className="world-mount" aria-label="3D zombie survival city"
       onPointerDown={event => {
         if (!started || paused || hud.over || drag.current || (event.pointerType === 'mouse' && event.button !== 0)) return;
         event.preventDefault();
-        drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+        const next: ScreenTap = { x: event.clientX, y: event.clientY, at: event.timeStamp };
+        const firing = event.pointerType === 'mouse' || isSecondTap(lastTap.current, next);
+        drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, start: next, moved: false, firing };
+        if (firing) { lastTap.current = null; engine.current?.fire(true); }
         event.currentTarget.setPointerCapture(event.pointerId);
-        if (event.pointerType === 'mouse') { firePointer.current = event.pointerId; engine.current?.fire(true); }
       }}
       onPointerMove={event => {
         const current = drag.current;
         if (!current || current.id !== event.pointerId) return;
         const delta = dragDelta(event.clientX - current.x, event.clientY - current.y, rotated);
         engine.current?.dragLook(delta.x, delta.y);
-        drag.current = { ...current, x: event.clientX, y: event.clientY };
+        drag.current = { ...current, x: event.clientX, y: event.clientY,
+          moved: current.moved || Math.hypot(event.clientX - current.start.x, event.clientY - current.start.y) > 23 };
       }}
-      onPointerUp={event => {
-        if (drag.current?.id === event.pointerId) drag.current = null;
-        if (firePointer.current === event.pointerId) { firePointer.current = null; engine.current?.fire(false); }
-      }}
-      onPointerCancel={event => { if (drag.current?.id === event.pointerId) drag.current = null; if (firePointer.current === event.pointerId) { firePointer.current = null; engine.current?.fire(false); } }}
-      onLostPointerCapture={event => { if (drag.current?.id === event.pointerId) drag.current = null; if (firePointer.current === event.pointerId) { firePointer.current = null; engine.current?.fire(false); } }}
+      onPointerUp={event => releaseGesture(event)}
+      onPointerCancel={event => releaseGesture(event, true)}
+      onLostPointerCapture={event => releaseGesture(event, true)}
     />
     <div className="zombie-hud">
+      {started && hud.hurt && !paused && <div className="zombie-damage-flash" aria-hidden="true" />}
       <header className="zombie-top">
         <div className="zombie-brand"><strong>DEAD CITY</strong><span>HUBSIDE SURVIVAL</span></div>
         <div className="zombie-health"><span>HEALTH {hud.health}%</span><div><i style={{ width: hud.health + '%' }} /></div></div>
@@ -562,16 +600,15 @@ export default function ZombieGame() {
       </header>
       {started && !paused && !hud.over && <div className={`zombie-reticle ${hud.hit ? 'hit' : ''}`} aria-hidden="true">+</div>}
       {started && !paused && !hud.over && <>
-        <div className="zombie-controls"><MovementJoystick onMove={onMove} /><LookJoystick onLook={onLook} /></div>
-        <button className="zombie-fire" onPointerDown={e => { e.preventDefault(); if (firePointer.current !== null) return; firePointer.current = e.pointerId; e.currentTarget.setPointerCapture(e.pointerId); engine.current?.fire(true); }}
-          onPointerUp={stopFire} onPointerCancel={stopFire} onLostPointerCapture={stopFire}>FIRE</button>
+        <div className="zombie-controls"><MovementJoystick onMove={onMove} /></div>
         <button className="zombie-jump" onPointerDown={e => { e.preventDefault(); engine.current?.jump(); }}>JUMP</button>
         <div className="zombie-ammo">
-          <span>{hud.weapon.toUpperCase()}</span><b>{hud.reloading ? 'RELOADING' : hud.ammo + ' / ' + hud.reserve}</b>
-          <button onClick={() => engine.current?.reload()}>RELOAD</button>
-          <div className="zombie-weapons">
-            {(['pistol', 'rifle', 'shotgun'] as const).map(w => <button key={w} className={hud.weapon === w ? 'active' : ''} onClick={() => engine.current?.equip(w)}>{w.toUpperCase()}</button>)}
-          </div>
+          <button className="zombie-weapon-cycle" onClick={() => engine.current?.cycleWeapon()} aria-label={`Change weapon. Currently ${hud.weapon}`}>
+            <strong>{hud.weapon.toUpperCase()} ↻</strong>
+            <span>{hud.reloading ? 'RELOADING…' : `${hud.ammo} / ${hud.reserve}`}</span>
+            <small>TAP TO SWITCH</small>
+          </button>
+          <button className="zombie-reload" onClick={() => engine.current?.reload()} aria-label="Reload weapon">RELOAD</button>
         </div>
         {hud.queued === 0 && hud.alive === 0 && <div className="zombie-next-wave">NEXT WAVE IN {Math.max(0, Math.ceil(hud.countdown))}</div>}
         {hud.portal && <button className="zombie-portal-link" onClick={() => window.open(HUBSIDE_URL, '_blank', 'noopener,noreferrer')}>ENTER PORTAL · HUBSIDE ↗</button>}
@@ -581,9 +618,10 @@ export default function ZombieGame() {
           <span className="zombie-eyebrow">HUBSIDE WORLDS</span>
           <h1>{hud.over ? 'GAME OVER' : 'DEAD CITY'}</h1>
           <p>{hud.over ? 'You survived ' + hud.wave + ' waves and eliminated ' + hud.kills + ' zombies.' : 'The streets are overrun. Keep moving, aim and shoot, and survive the waves.'}</p>
-          <p className="zombie-hint">{hud.ready ? 'MOVE: WASD / LEFT STICK · AIM: MOUSE DRAG / RIGHT STICK · FIRE: CLICK / FIRE BUTTON' : hud.notice}</p>
+          <p className="zombie-hint">{hud.ready ? 'MOVE: LEFT STICK / WASD · SWIPE TO AIM · DOUBLE TAP TO FIRE · HOLD SECOND TAP FOR AUTO FIRE' : hud.notice}</p>
           <div className="zombie-orientation" role="group" aria-label="Game orientation">
             {(['portrait', 'landscape'] as const).map(value => <button key={value} aria-pressed={orientation === value} onClick={() => setOrientation(value)}>{value.toUpperCase()}</button>)}
+            <button aria-pressed={haptics} onClick={() => setHaptics(v => !v)}>HAPTICS {haptics ? 'ON' : 'OFF'}</button>
           </div>
           <button className="zombie-start" onClick={hud.over || !started ? start : resume} disabled={!hud.ready}>{hud.over ? 'TRY AGAIN' : started ? 'RESUME' : 'START SURVIVING'}</button>
           {started && !hud.over && <button className="zombie-secondary" onClick={() => { engine.current?.reset(); setMenu(false); setPaused(false); }}>RESTART</button>}
