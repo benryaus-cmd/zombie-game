@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { Model } from '@/game/assetPreview';
 import type { Weapon } from './combat';
+import { getTuning } from './tuning';
 // Exact barrel basis obtained by comparing embedded vertices with standalone pack guns.
 const BARREL_DIRECTION=new THREE.Vector3(.8660,.2376,.4380).normalize();
 const WEAPON_NAMES=['Axe','Guitar','Knife','Pistol','Rifle','Shotgun','SMG','Spear','WoodenBat_Barbed','WoodenBat_Saw'];
@@ -15,6 +16,7 @@ export class ArmedSurvivor {
  private muzzle=new THREE.Object3D();
  private recoil=0;
  private reloadElapsed=0;
+ private flashAge=0;
  private torso:THREE.Object3D|undefined;
  constructor(model:Model,avatar:THREE.Group) {
   this.root=clone(model.scene) as THREE.Group;this.root.name='armed-survivor';
@@ -51,7 +53,8 @@ export class ArmedSurvivor {
  muzzlePosition() {this.root.updateMatrixWorld(true);return this.muzzle.getWorldPosition(new THREE.Vector3());}
  shot() {
    const force = this.gun?.name === 'Shotgun' ? 1.35 : this.gun?.name === 'Rifle' ? .58 : .9;
-   this.recoil = Math.min(1.75, this.recoil + force);
+   this.recoil = Math.min(3, this.recoil + force*getTuning().gunRecoil);
+   this.flashAge=getTuning().flashTime;
  }
  animate(dt:number,walking:boolean,airborne:boolean,target:THREE.Vector3,reloading:boolean) {
   const wanted=airborne?'Jump_Idle':walking?'Run_Gun':'Idle_Gun';
@@ -80,8 +83,9 @@ export class ArmedSurvivor {
    this.root.updateMatrixWorld(true);
    if(this.gun.name!=='Pistol')this.supportHand(this.gun.localToWorld(new THREE.Vector3(.413,.094,.166)));
   }
-  this.flash.visible=this.recoil>.38;
-   this.flash.scale.setScalar(1 + this.recoil * .8);
+  this.flashAge=Math.max(0,this.flashAge-dt);
+   this.flash.visible=this.flashAge>0;
+   this.flash.scale.setScalar(getTuning().flashScale*(1+this.recoil*.8));
  }
  private supportHand(target:THREE.Vector3) {
   const upper=this.root.getObjectByName('UpperArmR'),lower=this.root.getObjectByName('LowerArmR'),hand=this.root.getObjectByName('Middle1R');

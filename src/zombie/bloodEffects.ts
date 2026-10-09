@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { getTuning } from './tuning';
 
 /** One reusable particle buffer and one instanced blood-decal draw call for the entire horde. */
 const DROPLETS = 360;
@@ -70,7 +71,7 @@ export class BloodEffects {
   }
 
   burst(point: THREE.Vector3, incoming: THREE.Vector3, strength: number, floorY: number, fatal = false) {
-    const count = Math.min(46, Math.max(6, Math.ceil(strength * (fatal ? 2.8 : 1.7))));
+    const count = Math.min(70, Math.max(0, Math.ceil(strength * (fatal ? 2.8 : 1.7)*getTuning().bloodAmount)));
     const heading = incoming.clone().normalize();
     for (let j = 0; j < count; j++) {
       const i = this.particleIndex++ % DROPLETS;
@@ -112,12 +113,13 @@ export class BloodEffects {
       new THREE.Vector3(size, size * (.6 + Math.random() * .8), 1),
     );
     this.decals.setMatrixAt(i, matrix);
-    this.stains[i] = { expires: this.clock + 18 + Math.random() * 14, active: true };
+    this.stains[i] = { expires: this.clock + getTuning().bloodLifetime*(.8+Math.random()*.4), active: true };
     this.decals.instanceMatrix.needsUpdate = true;
   }
 
   update(dt: number, floorHeight: (x: number, z: number) => number) {
     this.clock += dt;
+    (this.points.material as THREE.PointsMaterial).size=getTuning().bloodSize;
     let changed = false;
     for (let i = 0; i < DROPLETS; i++) {
       const drop = this.drops[i];

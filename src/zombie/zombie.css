@@ -122,3 +122,33 @@
   .zombie-weapon-cycle span { font-size:15px; }
   .zombie-ammo .zombie-reload { min-width:50px; font-size:9px; }
 }
+
+/* Score and transient celebration callouts */
+.zombie-score { display:grid; text-align:right; justify-content:end; white-space:nowrap; line-height:1.15;
+ color:#edeee5; font-size:9px; }
+.zombie-score strong { color:#ffe0a0; font-size:15px; }
+.zombie-score small { color:#ff9a63; font-size:9px; font-weight:900; }
+.zombie-cross { position:absolute; inset:20% 0 auto; display:grid; place-items:center; pointer-events:none; z-index:13; }
+.zombie-callout { color:#ffb164; font:900 clamp(15px,4vw,26px)/1.1 system-ui,sans-serif;
+ letter-spacing:.05em; transform:rotate(-4deg); max-width:85%; text-align:center;
+ -webkit-text-stroke:.6px #612b20; text-shadow:2px 3px 0 #5a1618,0 0 8px #000;
+ animation:dc-callout 1.55s ease-out both; }
+@keyframes dc-callout {
+  0%{opacity:0;transform:scale(.65) rotate(-8deg)}
+  14%{opacity:1;transform:scale(1.17) rotate(-4deg)}
+  65%{opacity:1;transform:scale(1) rotate(-4deg)}
+  100%{opacity:0;transform:translateY(-22px) scale(.95) rotate(-2deg)}
+}
+.zombie-test-button { width:100%; margin-top:10px !important; background:#26434d !important;
+ border-color:#74adb0 !important; font-weight:900; }
+@container game (max-width:590px) {
+ .zombie-top { gap:5px; }
+ .zombie-score { font-size:8px; }
+ .zombie-score strong { font-size:11px; }
+}
+@container game (max-aspect-ratio: 1/1) {
+ .zombie-top { grid-template-columns: minmax(0,1fr) auto auto auto; }
+ .zombie-score { grid-column:3;grid-row:1;align-self:center; }
+ .zombie-menu-button { grid-column:4;grid-row:1; }
+ .zombie-kills { grid-column:3/5; grid-row:2;justify-self:end; }
+}

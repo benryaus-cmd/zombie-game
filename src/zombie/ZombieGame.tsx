@@ -15,19 +15,24 @@ import { ArmedSurvivor } from './survivor';
 import { WEAPONS, DISMEMBERMENT, damageFor, severable, nearestHit, wallDistance, routeAround, type Weapon, type Region } from './combat';
 import { shareSkeletons, bodySpheres, detachRegion, updateDebris, disposeDebris, type Debris } from './bodyParts';
 import { BloodEffects } from './bloodEffects';
+import { ShotTrails } from './shotTrails';
+import { getTuning } from './tuning';
+import { awardKill, comboRemaining, newScore, type ScoreState } from './score';
+import DebugPanel from './DebugPanel';
+import DebugFPS from './DebugFPS';
 type Hud = {
   health: number; wave: number; kills: number; alive: number; queued: number;
   ammo: number; reserve: number; weapon: Weapon; reloading: boolean;
   countdown: number; over: boolean; ready: boolean; notice: string;
-  portal: boolean; hit: boolean; hurt: boolean;
+  portal: boolean; hit: boolean; hurt: boolean; score:number; multiplier:number; combo:number; callout:string;
 };
 type Enemy = {
   root: THREE.Group; mixer: THREE.AnimationMixer | null; action: THREE.AnimationAction | null;
   model: Model | null; missing: Set<Region>; anim: string; reactUntil: number; waypoint: THREE.Vector2 | null; routeAt: number;
-  x: number; z: number; hp: number; speed: number; hitAt: number; deadAt: number;
+  x: number; z: number; hp: number; speed: number; hitAt: number; deadAt: number; baseVisualY:number;
 };
-const INITIAL_HUD: Hud = { health: 100, wave: 0, kills: 0, alive: 0, queued: 0, ammo: 12, reserve: 96, weapon: 'pistol', reloading: false, countdown: 0, over: false, ready: false, notice: 'LOADING THE CITY...', portal: false, hit: false, hurt: false };
-const HUBSIDE_URL = 'https://aippy.ai/@PinkYyyy/street-art-canvas-aV7b';
+const INITIAL_HUD: Hud = { health: 100, wave: 0, kills: 0, alive: 0, queued: 0, ammo: 12, reserve: 96, weapon: 'pistol', reloading: false, countdown: 0, over: false, ready: false, notice: 'LOADING THE CITY...', portal: false, hit: false, hurt: false, score:0, multiplier:1, combo:0, callout:'' };
+const HUBSIDE_URL = 'https://preview--55efd0b1-9368-4172-9456-53db458ef667.aippy.live';
 const ASSET_BASE = import.meta.env.BASE_URL + 'assets/zombie-kit/';
 const REMOTE_ASSET_BASE = 'https://raw.githubusercontent.com/benryaus-cmd/zombie-game/513a481f60e5f6756d4c06233952587509e5ab8e/public/assets/zombie-kit/';
 async function loadZombieAsset(name: string, signal: AbortSignal): Promise<Model> {
@@ -89,6 +94,11 @@ class ZombieEngine {
   private variants: Model[] = [];
   private debris: Debris[] = [];
   private blood: BloodEffects;
+  private trails: ShotTrails;
+  private scoreState:ScoreState=newScore();
+  private callout='';
+  private calloutUntil=0;
+  private lastCallout=-100;
   private cameraKick = 0;
   private hurtUntil = 0;
   private hapticsEnabled = true;
@@ -133,6 +143,7 @@ class ZombieEngine {
   constructor(private container: HTMLDivElement, private onHud: (state: Hud) => void) {
     this.world = createWorld(container, .06, 'map2');
     this.blood = new BloodEffects(this.world.scene);
+    this.trails = new ShotTrails(this.world.scene);
     this.world.cameraMode = 'third';
     this.world.playerPitch = -.08;
     this.world.botsEnabled = false;
@@ -197,8 +208,8 @@ class ZombieEngine {
   setHaptics(enabled: boolean) { this.hapticsEnabled = enabled; }
   dragLook(dx: number, dy: number) {
     if (this.paused || this.over) return;
-    this.world.playerYaw -= dx * .006;
-    this.world.playerPitch = THREE.MathUtils.clamp(this.world.playerPitch - dy * .004, -.68, .68);
+    this.world.playerYaw -= dx * getTuning().swipeX;
+    this.world.playerPitch = THREE.MathUtils.clamp(this.world.playerPitch - dy * getTuning().swipeY, -.68, .68);
   }
   key(code: string, down: boolean) {
     if (down) this.keys.add(code); else this.keys.delete(code);
@@ -226,7 +237,7 @@ class ZombieEngine {
   reload() {
     if (this.paused || this.over || this.reloadTimer > 0) return;
     if (this.ammo[this.weapon] === WEAPONS[this.weapon].rounds || this.reserve[this.weapon] <= 0) return;
-    this.reloadTimer = WEAPONS[this.weapon].reload;
+    this.reloadTimer = this.weapon==='pistol'?getTuning().reloadPistol:this.weapon==='rifle'?getTuning().reloadRifle:getTuning().reloadShotgun;
     this.emitHud();
   }
   private shoot() {
@@ -234,24 +245,29 @@ class ZombieEngine {
     const now = this.elapsed;
     if (now < this.nextShot) return;
     if (this.ammo[this.weapon] <= 0) { this.reload(); return; }
-    this.nextShot = now + WEAPONS[this.weapon].delay;
-    this.muzzleUntil = now + .08;
+    const t=getTuning();
+    const delay=this.weapon==='pistol'?t.pistolDelay:this.weapon==='rifle'?t.rifleDelay:t.shotgunDelay;
+    this.nextShot = now + delay;
+    this.muzzleUntil = now + t.flashTime;
     this.ammo[this.weapon]--;
     this.avatar?.shot();
-    this.cameraKick = Math.min(.24, this.cameraKick + (this.weapon === 'shotgun' ? .15 : this.weapon === 'pistol' ? .082 : .043));
+    this.cameraKick = Math.min(.9, this.cameraKick + (this.weapon === 'shotgun' ? t.kickShotgun : this.weapon === 'pistol' ? t.kickPistol : t.kickRifle));
     if (this.hapticsEnabled && typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-      try { navigator.vibrate(this.weapon === 'shotgun' ? 17 : this.weapon === 'pistol' ? 10 : 7); } catch { /* WebView may not support vibration. */ }
+      try { navigator.vibrate(Math.round(this.weapon === 'shotgun' ? t.hapticShotgun : this.weapon === 'pistol' ? t.hapticPistol : t.hapticRifle)); } catch { /* WebView may not support vibration. */ }
     }
     const camera = this.world.camera, config = WEAPONS[this.weapon];
+    const spread = this.weapon==='pistol'?t.pistolSpread:this.weapon==='rifle'?t.rifleSpread:t.shotgunSpread;
+    const pelletCount = this.weapon === 'shotgun' ? Math.round(t.shotgunPellets) : 1;
+    const shotDamage = this.weapon==='pistol'?t.pistolDamage:this.weapon==='rifle'?t.rifleDamage:t.shotgunDamage;
     const base = camera.getWorldDirection(new THREE.Vector3());
     const right = new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);
     const up = new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion);
     const muzzle = this.avatar?.muzzlePosition() ?? camera.position.clone();
     const spheres = this.enemies.filter(e => e.deadAt <= 0).map(enemy => ({ enemy, spheres: bodySpheres(enemy.root, enemy.missing) }));
-    for (let pellet = 0; pellet < config.pellets; pellet++) {
+    for (let pellet = 0; pellet < pelletCount; pellet++) {
       // The centre pellet remains exact; others sample an even cone around it.
-      const angle = pellet * 2.39996, spread = config.spread * Math.sqrt(pellet / config.pellets);
-      const direction = base.clone().addScaledVector(right, Math.cos(angle)*spread).addScaledVector(up, Math.sin(angle)*spread).normalize();
+      const angle = pellet * 2.39996, scatter = spread * Math.sqrt((pellet + .2) / pelletCount);
+      const direction = base.clone().addScaledVector(right, Math.cos(angle)*scatter).addScaledVector(up, Math.sin(angle)*scatter).normalize();
       const ray = new THREE.Ray(camera.position.clone(), direction);
       const wall = wallDistance(ray, this.world.colliders);
       let target: {enemy:Enemy; region:Region; distance:number; point:THREE.Vector3} | null = null;
@@ -260,11 +276,14 @@ class ZombieEngine {
         const hit = nearestHit(ray, entry.spheres.filter(s=>!entry.enemy.missing.has(s.region)), Math.min(config.range, wall));
         if (hit && (!target || hit.distance < target.distance)) target = { enemy: entry.enemy, ...hit };
       }
+      // Show a very brief, pooled bullet streak even when the bullet misses.
+      if (pellet===0 || (this.weapon==='shotgun' && pellet%3===0))
+        this.trails.shot(muzzle,direction,target?.distance ?? Math.min(config.range,wall));
       if (!target) continue;
       const muzzleRay = new THREE.Ray(muzzle, target.point.clone().sub(muzzle).normalize());
       if (wallDistance(muzzleRay, this.world.colliders) + .03 < muzzle.distanceTo(target.point)) continue;
       const enemy = target.enemy, region = target.region;
-      const damage = damageFor(this.weapon, region);
+      const damage = shotDamage * (region === 'head' ? 3 : region === 'torso' ? 1 : .7);
       enemy.hp -= damage; enemy.reactUntil = now + .32; this.hitUntil = now + .16;
       this.blood.burst(target.point, direction, this.weapon === 'shotgun' ? 12 : 7,
         getGroundHeight(this.world,enemy.x,enemy.z), enemy.hp <= 0);
@@ -275,7 +294,7 @@ class ZombieEngine {
           this.world.scene.add(piece.root); this.debris.push(piece); enemy.missing.add(region);
           this.blood.burst(target.point, direction, 22, getGroundHeight(this.world,enemy.x,enemy.z), true);
           if (region === 'head') enemy.hp = 0;
-          while (this.debris.length > DISMEMBERMENT.maxDebris) disposeDebris(this.debris.shift()!);
+          while (this.debris.length > getTuning().maxDebris) disposeDebris(this.debris.shift()!);
         }
       }
       if (enemy.hp <= 0) this.kill(enemy);
@@ -287,6 +306,12 @@ class ZombieEngine {
     if (enemy.deadAt > 0) return;
     enemy.deadAt = Math.max(.000001,this.elapsed);
     this.kills++;
+    const awarded=awardKill(this.scoreState,this.elapsed,enemy.missing.has('head'),enemy.missing.size>0);
+    this.scoreState=awarded.next;
+    if (this.elapsed-this.lastCallout>1.8 && (this.scoreState.comboCount>=2 || enemy.missing.size>0 || Math.random()<.35)) {
+      this.callout=awarded.callout + (this.scoreState.multiplier>1?'  ×'+this.scoreState.multiplier:'');
+      this.calloutUntil=this.elapsed+1.55;this.lastCallout=this.elapsed;
+    }
     this.blood.burst(new THREE.Vector3(enemy.x, enemy.root.position.y + 1.05, enemy.z),
       new THREE.Vector3(Math.random() - .5, .45, Math.random() - .5).normalize(),
       this.weapon === 'shotgun' ? 20 : 12, getGroundHeight(this.world, enemy.x, enemy.z), true);
@@ -324,15 +349,20 @@ class ZombieEngine {
       const clip = model.animations.find(c => c.name === 'Run_Arms') ?? model.animations.find(c => c.name === 'Walk');
       if (clip) { action = mixer.clipAction(clip); action.play(); }
     }
-    this.enemies.push({ root: body, model, mixer, action, anim: 'Run_Arms', missing: new Set(), reactUntil: 0, waypoint: null, routeAt: 0, x, z, hp: model === this.variants[1] ? 150 : 68 + Math.min(60,this.wave*4),
-      speed: 1.55 + this.wave * .16 + Math.random() * .35, hitAt: 0, deadAt: 0 });
+    this.enemies.push({ root: body, model, mixer, action, anim: 'Run_Arms', missing: new Set(), reactUntil: 0, waypoint: null, routeAt: 0, x, z, hp: model === this.variants[1] ? getTuning().heavyZombieHP : getTuning().baseZombieHP + Math.min(60,this.wave*4),
+      speed: getTuning().zombieSpeed + this.wave * getTuning().speedPerWave + Math.random() * .35, hitAt: 0, deadAt: 0, baseVisualY:visual.position.y });
     this.queued--;
   }
   private updateEnemy(enemy: Enemy, delta: number, now: number) {
-    const crippled = enemy.missing.has('leg-l') || enemy.missing.has('leg-r');
+    const t=getTuning();
+    const legsLost=Number(enemy.missing.has('leg-l'))+Number(enemy.missing.has('leg-r'));
+    const crawling=legsLost===2;
+    const hopping=legsLost===1;
+    // Leg states intentionally kept separate: one leg hops, two legs crawl.
     if (!enemy.deadAt && enemy.mixer && enemy.model) {
       const distance = Math.hypot(enemy.x-this.world.playerPosition.x,enemy.z-this.world.playerPosition.z);
-      const wanted = now < enemy.reactUntil ? 'HitReact' : distance < 1.4 ? 'Idle_Attack' : crippled ? 'Crawl' : 'Run_Arms';
+      const wanted = now < enemy.reactUntil ? 'HitReact' : distance < 1.4 ? 'Idle_Attack' :
+        crawling ? 'Crawl' : hopping ? (enemy.model.animations.some(c=>c.name==='Jump_Idle')?'Jump_Idle':'Run_Arms') : 'Run_Arms';
       if (enemy.anim !== wanted) {
         const clip = enemy.model.animations.find(c=>c.name === wanted);
         if (clip) { const next=enemy.mixer.clipAction(clip);next.reset().play();if(enemy.action)next.crossFadeFrom(enemy.action,.1,false);enemy.action=next;enemy.anim=wanted; }
@@ -340,7 +370,7 @@ class ZombieEngine {
     }
     enemy.mixer?.update(delta);
     if (enemy.deadAt > 0) {
-      if (now - enemy.deadAt > 3) {
+      if (now - enemy.deadAt > getTuning().corpseTime) {
         enemy.mixer?.stopAllAction();
         this.removeEnemy(enemy);
         return false;
@@ -356,7 +386,7 @@ class ZombieEngine {
         enemy.routeAt = now + .6;
       }
       const vx = enemy.waypoint.x-enemy.x, vz=enemy.waypoint.y-enemy.z, vl=Math.hypot(vx,vz);
-      const step = Math.min(vl, delta * enemy.speed * (crippled ? .3 : now < enemy.reactUntil ? .25 : 1));
+      const step = Math.min(vl, delta * enemy.speed * (crawling?t.crawlSpeed:hopping?t.hopSpeed:now<enemy.reactUntil?.25:1));
       const nx = enemy.x + vx / Math.max(.001,vl) * step, nz = enemy.z + vz / Math.max(.001,vl) * step;
       if (!blocked(this.world, nx, nz)) { enemy.x = nx; enemy.z = nz; }
       else if (!blocked(this.world, nx, enemy.z)) enemy.x = nx;
@@ -368,16 +398,24 @@ class ZombieEngine {
           enemy.x -= dz / length * side; enemy.z += dx / length * side;
         }
       }
-    } else if (now - enemy.hitAt > 1.12 && Math.abs(this.world.playerPosition.y - enemy.root.position.y - 1.72) < 1.1 &&
+    } else if (now - enemy.hitAt > t.attackInterval && Math.abs(this.world.playerPosition.y - enemy.root.position.y - 1.72) < 1.1 &&
       wallDistance(new THREE.Ray(new THREE.Vector3(enemy.x,enemy.root.position.y+1,enemy.z),new THREE.Vector3(dx,0,dz).normalize()),this.world.colliders) > length) {
       enemy.hitAt = now;
-      this.health = Math.max(0, this.health - 11);
+      this.health = Math.max(0, this.health - t.attackDamage);
       this.hurtUntil = now + .52;
       this.cameraKick = Math.max(this.cameraKick, .17);
       if (this.health <= 0) { this.over = true; this.firing = false; this.notice = 'YOU WERE OVERRUN'; }
       this.emitHud();
     }
-    enemy.root.position.set(enemy.x, getGroundHeight(this.world, enemy.x, enemy.z), enemy.z);
+    // One-legged zombies hop on the surviving leg; those losing both legs crawl close to the ground.
+    const floor=getGroundHeight(this.world,enemy.x,enemy.z);
+    const bob=hopping?Math.max(0,Math.sin(now*t.hopFrequency))*t.hopHeight:0;
+    enemy.root.position.set(enemy.x,floor+bob,enemy.z);
+    const visual=enemy.root.children[0];
+    if(visual) {
+      visual.position.y = enemy.baseVisualY + (crawling ? -.57 : hopping ? -.07 : 0);
+      visual.rotation.x = crawling ? -.65 : 0;
+    }
     return true;
   }
 
@@ -387,8 +425,9 @@ class ZombieEngine {
     const dt = Math.min((time - this.lastFrame) / 1000, .05);
     this.lastFrame = time;
     if (!this.paused && !this.over && this.ready) {
-      const aim = aimAngles(this.world.playerYaw, this.world.playerPitch, this.controls.lookInput?.x || 0, this.controls.lookInput?.y || 0, dt);
+      const aim = aimAngles(this.world.playerYaw, this.world.playerPitch, (this.controls.lookInput?.x || 0)*getTuning().lookStickSpeed/2.9, this.controls.lookInput?.y || 0, dt);
       this.world.playerYaw = aim.yaw; this.world.playerPitch = aim.pitch;
+      this.controls.moveSpeed=getTuning().moveSpeed; this.controls.jumpPower=getTuning().jumpPower;
       advanceWorld(this.world, dt, this.controls, this.keys);
       advanceWeather(this.world, dt);
       this.setAimCamera();
@@ -408,18 +447,19 @@ class ZombieEngine {
       if (this.firing) this.shoot();
       for (let i=this.debris.length-1;i>=0;i--) if(!updateDebris(this.debris[i],dt)) { disposeDebris(this.debris[i]);this.debris.splice(i,1); }
       this.blood.update(dt, (x,z) => getGroundHeight(this.world,x,z));
+      this.trails.update(dt);
       this.enemies = this.enemies.filter(e => this.updateEnemy(e, dt, now));
       const alive = this.enemies.filter(e => e.deadAt <= 0).length;
-      if (this.queued > 0 && alive < 18) {
+      if (this.queued > 0 && alive < getTuning().zombieCap) {
         this.spawnTimer -= dt;
-        if (this.spawnTimer <= 0) { this.spawn(); this.spawnTimer = Math.max(.28, .85 - this.wave * .04); }
+        if (this.spawnTimer <= 0) { this.spawn(); this.spawnTimer = Math.max(.1, getTuning().spawnInterval - this.wave * .04); }
       }
       if (this.queued <= 0 && alive === 0) {
         this.countdown -= dt;
         if (this.countdown <= 0) {
           this.wave++;
-          this.queued = Math.min(36, 4 + this.wave * 3);
-          this.countdown = 4;
+          this.queued = Math.min(100,Math.round(getTuning().waveBase + this.wave*getTuning().waveGrowth));
+          this.countdown = getTuning().betweenWaves;
           this.spawnTimer = .1;
           this.notice = 'WAVE ' + this.wave;
         }
@@ -429,10 +469,11 @@ class ZombieEngine {
     }
     // Positional screen shake: keep aim direction/crosshair stable.
     if (!this.paused && this.cameraKick > 0) {
-      this.cameraKick = Math.max(0, this.cameraKick - dt * .65);
+      this.cameraKick = Math.max(0, this.cameraKick - dt * getTuning().shakeDecay);
       const right = new THREE.Vector3(1,0,0).applyQuaternion(this.world.camera.quaternion);
-      this.world.camera.position.addScaledVector(right, Math.sin(time * .075) * this.cameraKick * .23);
-      this.world.camera.position.y += Math.cos(time * .095) * this.cameraKick * .28;
+      this.world.camera.position.addScaledVector(right, Math.sin(time * .075) * this.cameraKick * getTuning().shakeX);
+      this.world.camera.position.y += Math.cos(time * .095) * this.cameraKick * getTuning().shakeY;
+      this.world.camera.position.z+=Math.sin(time*.08)*this.cameraKick*getTuning().shakeZ;
     }
     this.world.renderer.render(this.world.scene, this.world.camera);
     if (time - this.lastHud > 180) { this.lastHud = time; this.emitHud(); }
@@ -455,7 +496,7 @@ class ZombieEngine {
   reset() {
     for (const enemy of this.enemies) this.removeEnemy(enemy);
     this.debris.forEach(disposeDebris); this.debris=[];
-    this.blood.clear(); this.cameraKick = 0; this.hurtUntil = 0;
+    this.blood.clear();this.trails.clear();this.scoreState=newScore();this.callout='';this.calloutUntil=0;this.lastCallout=-100; this.cameraKick = 0; this.hurtUntil = 0;
     this.enemies = [];
     this.health = 100; this.wave = 0; this.kills = 0; this.queued = 0;
     this.countdown = 1.3; this.spawnTimer = 0; this.over = false; this.paused = false;
@@ -478,13 +519,16 @@ class ZombieEngine {
       alive: this.enemies.filter(e => e.deadAt <= 0).length, queued: this.queued,
       ammo: this.ammo[this.weapon], reserve: this.reserve[this.weapon], weapon: this.weapon,
       reloading: this.reloadTimer > 0, countdown: this.countdown,
-      over: this.over, ready: this.ready, notice: this.notice, portal: this.portalNear, hit: this.elapsed < this.hitUntil, hurt: this.elapsed < this.hurtUntil });
+      over: this.over, ready: this.ready, notice: this.notice, portal: this.portalNear, hit: this.elapsed < this.hitUntil, hurt: this.elapsed < this.hurtUntil,
+      score:this.scoreState.score, multiplier:comboRemaining(this.scoreState,this.elapsed)>0?this.scoreState.multiplier:1,
+      combo:this.scoreState.comboCount, callout:this.elapsed<this.calloutUntil?this.callout:'' });
   }
   dispose() {
     this.disposed = true; this.aborter.abort(); cancelAnimationFrame(this.frame);
     for (const enemy of this.enemies) this.removeEnemy(enemy);
     this.debris.forEach(disposeDebris); this.debris=[];
     this.blood.dispose();
+    this.trails.dispose();
     this.avatar?.dispose();
     this.scenery.forEach(root=>{root.traverse(o=>{if(o instanceof THREE.SkinnedMesh)o.skeleton.dispose();});root.removeFromParent();});
     this.sources.forEach(m=>release(m.scene));
@@ -505,6 +549,7 @@ export default function ZombieGame() {
   const [started, setStarted] = useState(false);
   const [paused, setPaused] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [debugOpen,setDebugOpen] = useState(false);
   const onMove = useCallback((v: MovementInput) => engine.current?.move(v), []);
   const [haptics, setHaptics] = useState(() => { try { return localStorage.getItem('dead-city-haptics') !== 'off'; } catch { return true; } });
   useEffect(() => {
@@ -554,7 +599,8 @@ export default function ZombieGame() {
     setStarted(true); setPaused(false); setMenu(false);
 
   };
-  const pause = () => { engine.current?.setPaused(true); setPaused(true); setMenu(true); };
+  const pause = () => { engine.current?.setPaused(true); setPaused(true); setMenu(true); setDebugOpen(false); };
+  const openDebug = () => {engine.current?.setPaused(false);setStarted(true);setMenu(false);setPaused(false);setDebugOpen(true);};
   const resume = () => { engine.current?.setPaused(false); setPaused(false); setMenu(false); };
   const releaseGesture = (event: React.PointerEvent<HTMLDivElement>, cancelled = false) => {
     const current = drag.current;
@@ -589,6 +635,7 @@ export default function ZombieGame() {
       onPointerCancel={event => releaseGesture(event, true)}
       onLostPointerCapture={event => releaseGesture(event, true)}
     />
+    <DebugFPS />
     <div className="zombie-hud">
       {started && hud.hurt && !paused && <div className="zombie-damage-flash" aria-hidden="true" />}
       <header className="zombie-top">
@@ -596,14 +643,21 @@ export default function ZombieGame() {
         <div className="zombie-health"><span>HEALTH {hud.health}%</span><div><i style={{ width: hud.health + '%' }} /></div></div>
         <div className="zombie-wave"><strong>WAVE {hud.wave}</strong><small>{hud.alive + hud.queued} REMAINING</small></div>
         <div className="zombie-kills">KILLS <strong>{hud.kills}</strong></div>
+        <div className="zombie-score">SCORE <strong>{hud.score.toLocaleString()}</strong>
+          {hud.multiplier>1 && <small>×{hud.multiplier} COMBO</small>}</div>
         <button className="zombie-menu-button" onClick={pause} aria-label="Pause game">☰</button>
       </header>
+      {started && !paused && !hud.over && <div className="zombie-cross">
+        {hud.callout && <div className="zombie-callout" key={hud.callout}>{hud.callout}</div>}</div>}
       {started && !paused && !hud.over && <div className={`zombie-reticle ${hud.hit ? 'hit' : ''}`} aria-hidden="true">+</div>}
       {started && !paused && !hud.over && <>
         <div className="zombie-controls"><MovementJoystick onMove={onMove} /></div>
         <button className="zombie-jump" onPointerDown={e => { e.preventDefault(); engine.current?.jump(); }}>JUMP</button>
         <div className="zombie-ammo">
-          <button className="zombie-weapon-cycle" onClick={() => engine.current?.cycleWeapon()} aria-label={`Change weapon. Currently ${hud.weapon}`}>
+          <button className="zombie-weapon-cycle" onPointerDown={event => {
+            // Activate on the pointer itself, so weapon switching works even while a separate finger holds MOVE.
+            event.preventDefault();event.stopPropagation();engine.current?.cycleWeapon();
+          }} aria-label={`Change weapon. Currently ${hud.weapon}`}>
             <strong>{hud.weapon.toUpperCase()} ↻</strong>
             <span>{hud.reloading ? 'RELOADING…' : `${hud.ammo} / ${hud.reserve}`}</span>
             <small>TAP TO SWITCH</small>
@@ -619,6 +673,7 @@ export default function ZombieGame() {
           <h1>{hud.over ? 'GAME OVER' : 'DEAD CITY'}</h1>
           <p>{hud.over ? 'You survived ' + hud.wave + ' waves and eliminated ' + hud.kills + ' zombies.' : 'The streets are overrun. Keep moving, aim and shoot, and survive the waves.'}</p>
           <p className="zombie-hint">{hud.ready ? 'MOVE: LEFT STICK / WASD · SWIPE TO AIM · DOUBLE TAP TO FIRE · HOLD SECOND TAP FOR AUTO FIRE' : hud.notice}</p>
+          <button className="zombie-test-button" onClick={openDebug}>LIVE TEST VALUES / FPS</button>
           <div className="zombie-orientation" role="group" aria-label="Game orientation">
             {(['portrait', 'landscape'] as const).map(value => <button key={value} aria-pressed={orientation === value} onClick={() => setOrientation(value)}>{value.toUpperCase()}</button>)}
             <button aria-pressed={haptics} onClick={() => setHaptics(v => !v)}>HAPTICS {haptics ? 'ON' : 'OFF'}</button>
@@ -629,5 +684,6 @@ export default function ZombieGame() {
         </div>
       </div>}
     </div>
+    {debugOpen && <DebugPanel onClose={() => setDebugOpen(false)} />}
   </div>;
 }

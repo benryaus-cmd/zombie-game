@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { DISMEMBERMENT, type HitSphere, type Region } from './combat';
+import { type HitSphere, type Region } from './combat';
+import { getTuning } from './tuning';
 export function shareSkeletons(root:THREE.Group) {
  const skeletons:THREE.Skeleton[]=[];
  root.traverse(o=>{
@@ -33,14 +34,15 @@ export function bodySpheres(root:THREE.Group,missing:Set<Region>):HitSphere[] {
  }
  return results;
 }
-export interface Debris {root:THREE.Group;velocity:THREE.Vector3;age:number;spin:THREE.Vector3;floor:number}
+export interface Debris {root:THREE.Group;velocity:THREE.Vector3;age:number;spin:THREE.Vector3;floor:number;rest:number}
 /** Freeze the prepared region's real skinned vertices at the impact pose. */
 export function detachRegion(root:THREE.Group,region:Region,impulse:THREE.Vector3):Debris|null {
  root.updateMatrixWorld(true);
  const meshes:THREE.SkinnedMesh[]=[];
- root.traverse(o=>{if(o instanceof THREE.SkinnedMesh && o.visible && o.name.startsWith('part-'+region+'-'))meshes.push(o);});
+ root.traverse(o=>{if(o instanceof THREE.SkinnedMesh && o.visible && (o.name.startsWith('part-'+region+'-') || (region.startsWith('leg-') && o.name.startsWith('part-foot-'+region.slice(4)+'-'))))meshes.push(o);});
  if(!meshes.length)return null;
  const group=new THREE.Group();group.name='detached-'+region;
+ const tuning=getTuning();
  const center=new THREE.Box3().setFromObject(meshes[0]).getCenter(new THREE.Vector3());group.position.copy(center);
  for(const source of meshes) {
   source.skeleton.update();const original=source.geometry;
@@ -52,13 +54,29 @@ export function detachRegion(root:THREE.Group,region:Region,impulse:THREE.Vector
   if(original.index)geometry.setIndex(original.index.clone());geometry.computeVertexNormals();geometry.computeBoundingSphere();
   group.add(new THREE.Mesh(geometry,source.material));source.visible=false;
  }
- return {root:group,velocity:impulse.clone().multiplyScalar(3).add(new THREE.Vector3(0,2.8,0)),age:0,spin:new THREE.Vector3(3,2,4),floor:root.position.y};
+ // Freeze at the impact pose, then simulate an outward impulse. No heavy physics dependency.
+ return {root:group,velocity:impulse.clone().normalize().multiplyScalar(tuning.debrisForce).add(new THREE.Vector3(0,tuning.debrisLift,0)),
+ age:0,spin:new THREE.Vector3(3+Math.random()*4,2+Math.random()*3,4+Math.random()*3),floor:root.position.y,rest:0};
 }
 export function disposeDebris(piece:Debris) {piece.root.traverse(o=>{if(o instanceof THREE.Mesh)o.geometry.dispose();});piece.root.removeFromParent();}
 export function updateDebris(piece:Debris,dt:number):boolean {
- piece.age+=dt;if(piece.age>DISMEMBERMENT.lifetime)return false;
- piece.velocity.y-=9.8*dt;piece.root.position.addScaledVector(piece.velocity,dt);
- piece.root.rotation.x+=piece.spin.x*dt;piece.root.rotation.y+=piece.spin.y*dt;
- if(piece.root.position.y<piece.floor+.12){piece.root.position.y=piece.floor+.12;piece.velocity.y=Math.abs(piece.velocity.y)*.28;piece.velocity.x*=.75;piece.velocity.z*=.75;piece.spin.multiplyScalar(.7);}
+ const tuning=getTuning();
+ piece.age+=dt;
+ if(piece.age>tuning.debrisTime)return false;
+ if(piece.rest>0 && piece.velocity.lengthSq()<.09) { piece.rest+=dt; return true; }
+ piece.velocity.y-=tuning.debrisGravity*dt;
+ piece.root.position.addScaledVector(piece.velocity,dt);
+ piece.root.rotation.x+=piece.spin.x*dt; piece.root.rotation.y+=piece.spin.y*dt;
+ if(piece.root.position.y<piece.floor+.11) {
+  piece.root.position.y=piece.floor+.11;
+  piece.velocity.y=Math.abs(piece.velocity.y)*tuning.debrisBounce;
+  piece.velocity.x*=.73;piece.velocity.z*=.73;piece.spin.multiplyScalar(.65);
+  piece.rest+=dt;
+ }
+ // Gently dissolve during the last quarter-second, then dispose all buffers after ~2s.
+ if (piece.age > tuning.debrisTime - .25) {
+   const alpha=Math.max(.001,(tuning.debrisTime-piece.age)/.25);
+   piece.root.scale.setScalar(alpha);
+ }
  return true;
 }

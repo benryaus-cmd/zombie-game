@@ -1,0 +1,30 @@
+.dc-debug-fps { position:absolute; top:3px; left:50%; transform:translateX(-50%); z-index:110;
+pointer-events:none; color:#b8ffb7; background:#071510df; border:1px solid #54ba5770; border-radius:5px;
+font:800 11px/1.1 monospace; padding:3px 7px; text-shadow:0 0 3px black; }
+.dc-debug-panel { position:absolute; inset:max(26px,env(safe-area-inset-top)) 4px 4px auto;
+width:min(94%,440px); z-index:101; display:flex; flex-direction:column; pointer-events:auto;
+border:1px solid #75aba7; border-radius:11px; background:#0d1b21f5; color:#fff;
+box-shadow:0 4px 35px #000c; font:12px/1.35 system-ui, sans-serif; touch-action:pan-y; }
+.dc-debug-head { flex:0 0 auto; display:flex; justify-content:space-between; align-items:center;
+padding:9px 10px; border-bottom:1px solid #667b8066; gap:8px; }
+.dc-debug-head strong { font-size:13px; color:#ffbf85; }
+.dc-debug-panel button { color:#fff; background:#26424d; border:1px solid #7f9aa2;
+border-radius:5px; padding:6px 10px; cursor:pointer; touch-action:manipulation; }
+.dc-debug-panel button:disabled { opacity:.25; }
+.dc-debug-scroll { min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:8px 10px 14px; touch-action:pan-y; }
+.dc-debug-scroll p { font-size:11px; margin:3px 0 10px; color:#bfcdd2; }
+.dc-debug-scroll section { margin:0 0 13px; }
+.dc-debug-scroll h3 { font-size:12px; color:#ffbd80; text-transform:uppercase; letter-spacing:.1em;
+border-bottom:1px solid #4e687060; padding-bottom:4px; margin:9px 0 7px; }
+.dc-debug-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+.dc-debug-field { min-width:0; background:#132b34; border:1px solid #3c5a63; border-radius:6px; padding:5px; }
+.dc-debug-field > div { display:flex; justify-content:space-between; align-items:center; gap:4px; min-height:29px; }
+.dc-debug-field label { font-size:10px; line-height:1.15; color:#d8e3e3; overflow-wrap:anywhere; }
+.dc-debug-field button { padding:2px 7px; flex:0 0 auto; min-height:23px; }
+.dc-debug-field input { width:100%; height:33px; min-width:0; margin-top:3px; border-radius:5px;
+border:1px solid #779398; background:#071217; color:#fff; padding:5px 7px; font:14px monospace;
+user-select:text; touch-action:manipulation; }
+.dc-debug-export { display:grid; gap:7px; padding:9px 0 12px; }
+.dc-debug-export span { color:#a3ffac; }
+.dc-debug-json { width:100%; min-height:140px; border-radius:5px; background:#020a0e; color:#bae6dd;
+font:10px/1.3 monospace; padding:8px; user-select:text; touch-action:pan-y; resize:vertical; }

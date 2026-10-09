@@ -8,7 +8,7 @@ export const WEAPONS = {
  rifle: { rounds:30, delay:.11, reload:1.7, damage:27, pellets:1, spread:.006, range:90 },
  shotgun: { rounds:6, delay:.85, reload:2, damage:22, pellets:9, spread:.048, range:35 },
 };
-export const DISMEMBERMENT = { limbDistance:14, limbDamage:15, maxDebris:24, lifetime:6 };
+export const DISMEMBERMENT = { limbDistance:14, limbDamage:15, maxDebris:24, lifetime:2 };
 export function damageFor(weapon:Weapon,region:Region) { return WEAPONS[weapon].damage * (region==='head'?3:region==='torso'?1:.7); }
 export function severable(weapon:Weapon,region:Region,distance:number) {
  return region==='head' || (weapon==='shotgun' && region!=='torso' && distance<DISMEMBERMENT.limbDistance);
