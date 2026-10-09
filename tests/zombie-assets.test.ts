@@ -11,3 +11,20 @@ for (const name of ['Zombie_Basic','Zombie_Chubby']) test(name + ' prepared mesh
  assert.ok(g.buffers.every((b:any)=>b.uri.startsWith('data:')));
  assert.ok(g.animations.some((a:any)=>a.name==='Death'));
 });
+
+test('23 CC0 audio assets are present and have valid RIFF/WAVE or OGG headers',()=>{
+ const soundNames=[
+   ...[0,1,2].map(i=>'pistol-'+i+'.wav'),
+   ...[0,1,2].map(i=>'rifle-'+i+'.wav'),
+   ...[0,1].map(i=>'shotgun-'+i+'.wav'),
+   ...[1,3,4,5,6,7,8,9,10,11,12].map(i=>'zombie-'+i+'.wav'),
+   'reload.ogg','reload-rifle.ogg','reload-shotgun.ogg',
+   'empty-click.ogg','bullet-impact-0.ogg','bullet-impact-1.ogg'
+ ];
+ assert.equal(soundNames.length,25);
+ for(const name of soundNames){
+   const bytes=fs.readFileSync('public/audio/sfx/'+name);
+   assert.ok(bytes.length>100,name+' must not be empty');
+   assert.equal(bytes.toString('ascii',0,4),name.endsWith('.ogg')?'OggS':'RIFF',name);
+ }
+});

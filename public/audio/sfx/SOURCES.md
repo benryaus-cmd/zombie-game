@@ -24,7 +24,10 @@ Individual short groans play in different categories based on enemy event. They 
 ## UI and effects: CC0 1.0
 
 From Kenney assets included in the Mcamento8 CC0 index:
-- `reload.ogg` = `interface-sounds/switch_001.ogg` (mechanical switch click, a simple reload cue; not a real firearm magazine recording).
+- `reload.ogg` = `interface-sounds/switch_001.ogg` (pistol mechanical cue).
+- `reload-rifle.ogg` = `interface-sounds/switch_002.ogg` (rifle mechanical cue).
+- `reload-shotgun.ogg` = `interface-sounds/switch_003.ogg` (shotgun mechanical cue).
+  These are quick CC0 game UI/foley switch recordings, NOT actual firearm magazine recordings.
 - `empty-click.ogg` = `interface-sounds/click_001.ogg`
 - `bullet-impact-0.ogg` = `impact-sounds/impactMetal_light_000.ogg`
 - `bullet-impact-1.ogg` = `impact-sounds/impactSoft_heavy_000.ogg`

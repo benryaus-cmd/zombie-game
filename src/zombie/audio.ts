@@ -23,11 +23,13 @@ const URLS: Record<string,string> = {
   'zombie-11.wav': new URL('../../public/audio/sfx/zombie-11.wav', import.meta.url).href,
   'zombie-12.wav': new URL('../../public/audio/sfx/zombie-12.wav', import.meta.url).href,
   'reload.ogg': new URL('../../public/audio/sfx/reload.ogg', import.meta.url).href,
+  'reload-rifle.ogg': new URL('../../public/audio/sfx/reload-rifle.ogg', import.meta.url).href,
+  'reload-shotgun.ogg': new URL('../../public/audio/sfx/reload-shotgun.ogg', import.meta.url).href,
   'empty-click.ogg': new URL('../../public/audio/sfx/empty-click.ogg', import.meta.url).href,
   'bullet-impact-0.ogg': new URL('../../public/audio/sfx/bullet-impact-0.ogg', import.meta.url).href,
   'bullet-impact-1.ogg': new URL('../../public/audio/sfx/bullet-impact-1.ogg', import.meta.url).href,
 };
-export type SfxEvent = 'pistol'|'rifle'|'shotgun'|'idle'|'alert'|'attack'|'hurt'|'death'|'critical'|'crawl'|'reload'|'empty'|'impact';
+export type SfxEvent = 'pistol'|'rifle'|'shotgun'|'idle'|'alert'|'attack'|'hurt'|'death'|'critical'|'crawl'|'reload'|'reloadRifle'|'reloadShotgun'|'empty'|'impact';
 const CLIPS: Record<SfxEvent,string[]> = {
  pistol:['pistol-0.wav','pistol-1.wav','pistol-2.wav'],
  rifle:['rifle-0.wav','rifle-1.wav','rifle-2.wav'],
@@ -40,6 +42,8 @@ const CLIPS: Record<SfxEvent,string[]> = {
  critical:['zombie-7.wav','zombie-12.wav'],
  crawl:['zombie-1.wav','zombie-5.wav'],
  reload:['reload.ogg'],
+ reloadRifle:['reload-rifle.ogg'],
+ reloadShotgun:['reload-shotgun.ogg'],
  empty:['empty-click.ogg'],
  impact:['bullet-impact-0.ogg','bullet-impact-1.ogg'],
 };
@@ -115,7 +119,7 @@ export class ZombieAudio {
  }
  play(event:SfxEvent,pos?:THREE.Vector3,gateKey?:string) {
   const ctx=this.context;if(this.disposed||!ctx||ctx.state!=='running')return;
-  const t=getTuning(), category=event==='pistol'||event==='rifle'||event==='shotgun'?'weapon':event==='reload'||event==='empty'?'ui':'zombie';
+  const t=getTuning(), category=event==='pistol'||event==='rifle'||event==='shotgun'?'weapon':(event==='reload'||event==='reloadRifle'||event==='reloadShotgun'||event==='empty')?'ui':'zombie';
   const now=ctx.currentTime;
   const key=gateKey||event;
   const minGap=category==='zombie'?t.zombieMinGap:event==='empty'?.11:0;

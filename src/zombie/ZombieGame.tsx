@@ -237,14 +237,14 @@ class ZombieEngine {
   equip(weapon: Weapon) {
     this.weapon = weapon; this.reloadTimer = 0; this.firing = false;
     this.avatar?.equip(weapon);
-    if(this.ready&&!this.paused)this.audio.play('reload');
+    if(this.ready&&!this.paused)this.audio.play(this.weapon==='pistol'?'reload':this.weapon==='rifle'?'reloadRifle':'reloadShotgun');
     this.emitHud();
   }
   reload() {
     if (this.paused || this.over || this.reloadTimer > 0) return;
     if (this.ammo[this.weapon] === WEAPONS[this.weapon].rounds || this.reserve[this.weapon] <= 0) return;
     this.reloadTimer = this.weapon==='pistol'?getTuning().reloadPistol:this.weapon==='rifle'?getTuning().reloadRifle:getTuning().reloadShotgun;
-    this.audio.play('reload');
+    this.audio.play(this.weapon==='pistol'?'reload':this.weapon==='rifle'?'reloadRifle':'reloadShotgun');
     this.emitHud();
   }
   private shoot() {
@@ -287,7 +287,11 @@ class ZombieEngine {
       // Show a very brief, pooled bullet streak even when the bullet misses.
       if (pellet===0 || (this.weapon==='shotgun' && pellet%3===0))
         this.trails.shot(muzzle,direction,target?.distance ?? Math.min(config.range,wall));
-      if (!target) continue;
+      if (!target) {
+        if(pellet===0 && Number.isFinite(wall) && wall<config.range)
+          this.audio.play('impact',ray.at(wall,new THREE.Vector3()),'impact-world');
+        continue;
+      }
       const muzzleRay = new THREE.Ray(muzzle, target.point.clone().sub(muzzle).normalize());
       if (wallDistance(muzzleRay, this.world.colliders) + .03 < muzzle.distanceTo(target.point)) continue;
       const enemy = target.enemy, region = target.region;
