@@ -3,11 +3,11 @@ import { TUNING, DEFAULT_TUNING, getTuning, setTuning, resetTuning, subscribeTun
 import './debug.css';
 
 /** Self-contained, temporary developer controls. Remove <DebugPanel /> and this file to remove the tool. */
-export default function DebugPanel({ onClose }: { onClose: () => void }) {
+export default function DebugPanel({ onClose, orientation, haptics }: { onClose: () => void; orientation: 'portrait'|'landscape'; haptics: boolean }) {
   const [values, setValues] = useState(getTuning());
   const [status, setStatus] = useState('');
   useEffect(() => subscribeTuning(() => setValues(getTuning())), []);
-  const json = tuningJSON();
+  const json = JSON.stringify({ ...JSON.parse(tuningJSON()), orientation, hapticsEnabled: haptics, fps: document.querySelector('.dc-debug-fps')?.getAttribute('aria-label') ?? 'unknown' },null,2);
   async function copy() {
     try { await navigator.clipboard.writeText(json); setStatus('COPIED'); }
     catch {

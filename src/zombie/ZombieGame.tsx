@@ -684,6 +684,6 @@ export default function ZombieGame() {
         </div>
       </div>}
     </div>
-    {debugOpen && <DebugPanel onClose={() => setDebugOpen(false)} />}
+    {debugOpen && <DebugPanel orientation={orientation} haptics={haptics} onClose={() => setDebugOpen(false)} />}
   </div>;
 }
