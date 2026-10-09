@@ -1,0 +1,44 @@
+{
+  "version": "zombie-portrait-combat-10oct2026",
+  "commit": "8370a46cdf15fa739cf8729876f5374d4a5429f2",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/8370a46cdf15fa739cf8729876f5374d4a5429f2/",
+  "fileCount": 9,
+  "files": [
+    {
+      "source": "src/zombie/ZombieGame.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/ZombieGame.tsx"
+    },
+    {
+      "source": "src/zombie/zombie.css",
+      "target": "src/games/importedGame/upstream/src/zombie/zombie.css"
+    },
+    {
+      "source": "src/zombie/controls.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/controls.ts"
+    },
+    {
+      "source": "src/zombie/combat.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/combat.ts"
+    },
+    {
+      "source": "src/zombie/bodyParts.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/bodyParts.ts"
+    },
+    {
+      "source": "src/zombie/survivor.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/survivor.ts"
+    },
+    {
+      "source": "public/assets/zombie-kit/Characters_Matt.gltf",
+      "target": "src/games/importedGame/upstream/public/assets/zombie-kit/Characters_Matt.gltf"
+    },
+    {
+      "source": "public/assets/zombie-kit/Zombie_Basic-parts.gltf",
+      "target": "src/games/importedGame/upstream/public/assets/zombie-kit/Zombie_Basic-parts.gltf"
+    },
+    {
+      "source": "public/assets/zombie-kit/Zombie_Chubby-parts.gltf",
+      "target": "src/games/importedGame/upstream/public/assets/zombie-kit/Zombie_Chubby-parts.gltf"
+    }
+  ]
+}
