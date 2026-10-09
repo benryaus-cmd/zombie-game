@@ -210,6 +210,10 @@ class ZombieEngine {
   move = (input: MovementInput) => { this.controls.movement = input; };
   look = (input: LookInput) => { this.controls.lookInput = input; };
   setHaptics(enabled: boolean) { this.hapticsEnabled = enabled; }
+  previewAudio(event:'pistol'|'rifle'|'shotgun'|'idle'|'reload') {
+    this.audio.unlock();
+    this.audio.play(event,event==='idle'?this.world.playerPosition.clone().add(new THREE.Vector3(3,0,-2)):undefined,'preview-'+event);
+  }
   setDeveloperPanelOpen(open: boolean) { this.developerPanelOpen = open; }
   dragLook(dx: number, dy: number) {
     if (this.paused || this.over) return;
@@ -377,7 +381,7 @@ class ZombieEngine {
     if (!enemy.deadAt && enemy.mixer && enemy.model) {
       const distance = Math.hypot(enemy.x-this.world.playerPosition.x,enemy.z-this.world.playerPosition.z);
       const wanted = now < enemy.reactUntil ? 'HitReact' : distance < 1.4 ? 'Idle_Attack' :
-        crawling ? 'Crawl' : hopping ? (enemy.model.animations.some(c=>c.name==='Jump_Idle')?'Jump_Idle':'Run_Arms') : 'Run_Arms';
+        crawling ? 'Crawl' : hopping ? 'Walk' : 'Run_Arms';
       if (enemy.anim !== wanted) {
         const clip = enemy.model.animations.find(c=>c.name === wanted);
         if (clip) { const next=enemy.mixer.clipAction(clip);next.reset().play();if(enemy.action)next.crossFadeFrom(enemy.action,.1,false);enemy.action=next;enemy.anim=wanted; }
@@ -706,6 +710,6 @@ export default function ZombieGame() {
         </div>
       </div>}
     </div>
-    {debugOpen && <DebugPanel orientation={orientation} haptics={haptics} onClose={() => { engine.current?.setDeveloperPanelOpen(false);setDebugOpen(false); }} />}
+    {debugOpen && <DebugPanel orientation={orientation} haptics={haptics} onTestAudio={event=>engine.current?.previewAudio(event)} onClose={() => { engine.current?.setDeveloperPanelOpen(false);setDebugOpen(false); }} />}
   </div>;
 }

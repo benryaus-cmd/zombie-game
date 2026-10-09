@@ -28,3 +28,6 @@ user-select:text; touch-action:manipulation; }
 .dc-debug-export span { color:#a3ffac; }
 .dc-debug-json { width:100%; min-height:140px; border-radius:5px; background:#020a0e; color:#bae6dd;
 font:10px/1.3 monospace; padding:8px; user-select:text; touch-action:pan-y; resize:vertical; }
+
+.dc-sound-preview { display:flex; flex-wrap:wrap;gap:5px;margin:7px 0 10px; }
+.dc-sound-preview button {font-size:9px;padding:7px 8px;flex:1 1 auto;}
