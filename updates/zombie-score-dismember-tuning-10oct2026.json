@@ -1,0 +1,59 @@
+{
+  "version": "zombie-score-dismember-tuning-10oct2026",
+  "type": "incremental",
+  "repository": "benryaus-cmd/zombie-game",
+  "commit": "22533507e880ee68f341d9996f05889396501cae",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/22533507e880ee68f341d9996f05889396501cae/",
+  "fileCount": 12,
+  "description": "Dead City HubSide destination update; improved detached limbs with 2-second fade, one-leg hopping and no-leg crawling, combo score and celebration messages, short bullet tracers, reliable multitouch weapon switching, live developer values panel and topmost FPS overlay. Preserve all unlisted files and Aippy host shell.",
+  "files": [
+    {
+      "source": "src/zombie/ZombieGame.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/ZombieGame.tsx"
+    },
+    {
+      "source": "src/zombie/bodyParts.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/bodyParts.ts"
+    },
+    {
+      "source": "src/zombie/combat.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/combat.ts"
+    },
+    {
+      "source": "src/zombie/survivor.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/survivor.ts"
+    },
+    {
+      "source": "src/zombie/bloodEffects.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/bloodEffects.ts"
+    },
+    {
+      "source": "src/zombie/zombie.css",
+      "target": "src/games/importedGame/upstream/src/zombie/zombie.css"
+    },
+    {
+      "source": "src/zombie/tuning.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/tuning.ts"
+    },
+    {
+      "source": "src/zombie/DebugPanel.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/DebugPanel.tsx"
+    },
+    {
+      "source": "src/zombie/DebugFPS.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/DebugFPS.tsx"
+    },
+    {
+      "source": "src/zombie/debug.css",
+      "target": "src/games/importedGame/upstream/src/zombie/debug.css"
+    },
+    {
+      "source": "src/zombie/shotTrails.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/shotTrails.ts"
+    },
+    {
+      "source": "src/zombie/score.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/score.ts"
+    }
+  ]
+}
