@@ -102,6 +102,7 @@ class ZombieEngine {
   private cameraKick = 0;
   private hurtUntil = 0;
   private hapticsEnabled = true;
+  private developerPanelOpen = false;
   private scenery: THREE.Group[] = [];
   private hitUntil = 0;
   private portal: THREE.Group;
@@ -207,6 +208,7 @@ class ZombieEngine {
   move = (input: MovementInput) => { this.controls.movement = input; };
   look = (input: LookInput) => { this.controls.lookInput = input; };
   setHaptics(enabled: boolean) { this.hapticsEnabled = enabled; }
+  setDeveloperPanelOpen(open: boolean) { this.developerPanelOpen = open; }
   dragLook(dx: number, dy: number) {
     if (this.paused || this.over) return;
     this.world.playerYaw -= dx * getTuning().swipeX;
@@ -402,6 +404,7 @@ class ZombieEngine {
     } else if (now - enemy.hitAt > t.attackInterval && Math.abs(this.world.playerPosition.y - enemy.root.position.y - 1.72) < 1.1 &&
       wallDistance(new THREE.Ray(new THREE.Vector3(enemy.x,enemy.root.position.y+1,enemy.z),new THREE.Vector3(dx,0,dz).normalize()),this.world.colliders) > length) {
       enemy.hitAt = now;
+      if (this.developerPanelOpen && t.safeWhileTuning >= .5) return true;
       this.health = Math.max(0, this.health - t.attackDamage);
       this.hurtUntil = now + .52;
       this.cameraKick = Math.max(this.cameraKick, .17);
@@ -601,8 +604,8 @@ export default function ZombieGame() {
     setStarted(true); setPaused(false); setMenu(false);
 
   };
-  const pause = () => { engine.current?.setPaused(true); setPaused(true); setMenu(true); setDebugOpen(false); };
-  const openDebug = () => {engine.current?.setPaused(false);setStarted(true);setMenu(false);setPaused(false);setDebugOpen(true);};
+  const pause = () => { engine.current?.setDeveloperPanelOpen(false); engine.current?.setPaused(true); setPaused(true); setMenu(true); setDebugOpen(false); };
+  const openDebug = () => {engine.current?.setDeveloperPanelOpen(true);engine.current?.setPaused(false);setStarted(true);setMenu(false);setPaused(false);setDebugOpen(true);};
   const resume = () => { engine.current?.setPaused(false); setPaused(false); setMenu(false); };
   const releaseGesture = (event: React.PointerEvent<HTMLDivElement>, cancelled = false) => {
     const current = drag.current;
@@ -686,6 +689,6 @@ export default function ZombieGame() {
         </div>
       </div>}
     </div>
-    {debugOpen && <DebugPanel orientation={orientation} haptics={haptics} onClose={() => setDebugOpen(false)} />}
+    {debugOpen && <DebugPanel orientation={orientation} haptics={haptics} onClose={() => { engine.current?.setDeveloperPanelOpen(false);setDebugOpen(false); }} />}
   </div>;
 }

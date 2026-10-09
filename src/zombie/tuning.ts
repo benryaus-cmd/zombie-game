@@ -1,5 +1,7 @@
 /** Dead City temporary developer tuning surface. Delete this file and its panel import when finished testing. */
 export const TUNING = {
+  // Developer test convenience
+  safeWhileTuning: ['No player damage while editor open (1=yes)','Developer',1,0,1,1],
   // Touch and player
   moveSpeed: ['Movement speed','Movement',7,1,20,.25],
   jumpPower: ['Jump force','Movement',7.2,1,18,.2],
