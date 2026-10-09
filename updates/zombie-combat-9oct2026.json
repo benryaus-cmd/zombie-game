@@ -1,0 +1,43 @@
+{
+  "version": "zombie-combat-9oct2026",
+  "type": "incremental",
+  "repository": "benryaus-cmd/zombie-game",
+  "commit": "0ebb4306eaadec0a6f8b1d8e69e61e6c6478383f",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/0ebb4306eaadec0a6f8b1d8e69e61e6c6478383f/",
+  "fileCount": 8,
+  "description": "Switch an already FULLY imported HubSide codebase to ZombieGame by replacing only exact listed upstream files, keeping existing world source and Aippy importer.",
+  "files": [
+    {
+      "source": "src/App.tsx",
+      "target": "src/games/importedGame/upstream/src/App.tsx"
+    },
+    {
+      "source": "src/zombie/ZombieGame.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/ZombieGame.tsx"
+    },
+    {
+      "source": "src/zombie/zombie.css",
+      "target": "src/games/importedGame/upstream/src/zombie/zombie.css"
+    },
+    {
+      "source": "public/assets/zombie-kit/Zombie_Ribcage.gltf",
+      "target": "src/games/importedGame/upstream/public/assets/zombie-kit/Zombie_Ribcage.gltf"
+    },
+    {
+      "source": "public/assets/zombie-kit/Pistol.gltf",
+      "target": "src/games/importedGame/upstream/public/assets/zombie-kit/Pistol.gltf"
+    },
+    {
+      "source": "public/assets/zombie-kit/Rifle.gltf",
+      "target": "src/games/importedGame/upstream/public/assets/zombie-kit/Rifle.gltf"
+    },
+    {
+      "source": "public/assets/zombie-kit/Shotgun.gltf",
+      "target": "src/games/importedGame/upstream/public/assets/zombie-kit/Shotgun.gltf"
+    },
+    {
+      "source": "public/assets/zombie-kit/License.txt",
+      "target": "src/games/importedGame/upstream/public/assets/zombie-kit/License.txt"
+    }
+  ]
+}
