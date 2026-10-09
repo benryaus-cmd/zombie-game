@@ -16,5 +16,5 @@ jobs:
           node-version: '22'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec tsc -p tsconfig.app.json --noEmit
+      - run: pnpm exec tsc -p tsconfig.zombie.json --noEmit
       - run: pnpm build

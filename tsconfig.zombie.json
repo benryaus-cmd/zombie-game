@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.app.json",
+  "include": [
+    "src/zombie/**/*.ts",
+    "src/zombie/**/*.tsx",
+    "src/main.tsx",
+    "src/vite-env.d.ts"
+  ]
+}

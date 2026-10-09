@@ -148,6 +148,8 @@ class ZombieEngine {
     this.world.updateChunks(this.world.playerPosition.x, this.world.playerPosition.z);
     this.avatar = new AssetPreview(this.world.scene, this.world.playerAvatar);
     this.portal = createPortal(this.world);
+    advanceWorld(this.world, 0, this.controls, this.keys);
+    this.setAimCamera();
     this.resize();
     void this.loadAssets();
     this.frame = requestAnimationFrame(this.tick);
@@ -192,6 +194,11 @@ class ZombieEngine {
 
   move = (input: MovementInput) => { this.controls.movement = input; };
   look = (input: LookInput) => { this.controls.lookInput = input; };
+  dragLook(dx: number, dy: number) {
+    if (this.paused || this.over) return;
+    this.world.playerYaw -= dx * .006;
+    this.world.playerPitch = THREE.MathUtils.clamp(this.world.playerPitch - dy * .004, -.68, .68);
+  }
   key(code: string, down: boolean) {
     if (down) this.keys.add(code); else this.keys.delete(code);
     if (down && code === 'Space') this.jump();
@@ -420,6 +427,7 @@ class ZombieEngine {
 
 export default function ZombieGame() {
   const mount = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ id: number; x: number; y: number } | null>(null);
   const engine = useRef<ZombieEngine | null>(null);
   const [hud, setHud] = useState<Hud>(INITIAL_HUD);
   const [started, setStarted] = useState(false);
@@ -469,7 +477,27 @@ export default function ZombieGame() {
   const resume = () => { engine.current?.setPaused(false); setPaused(false); setMenu(false); };
   const stopFire = useCallback(() => engine.current?.fire(false), []);
   return <div className="zombie-root">
-    <div ref={mount} className="world-mount" aria-label="3D zombie survival city" />
+    <div ref={mount} className="world-mount" aria-label="3D zombie survival city"
+      onPointerDown={event => {
+        if (!started || paused || hud.over || drag.current || (event.pointerType === 'mouse' && event.button !== 0)) return;
+        event.preventDefault();
+        drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+        event.currentTarget.setPointerCapture(event.pointerId);
+        if (event.pointerType === 'mouse') engine.current?.fire(true);
+      }}
+      onPointerMove={event => {
+        const current = drag.current;
+        if (!current || current.id !== event.pointerId) return;
+        engine.current?.dragLook(event.clientX - current.x, event.clientY - current.y);
+        drag.current = { ...current, x: event.clientX, y: event.clientY };
+      }}
+      onPointerUp={event => {
+        if (drag.current?.id === event.pointerId) drag.current = null;
+        engine.current?.fire(false);
+      }}
+      onPointerCancel={() => { drag.current = null; engine.current?.fire(false); }}
+      onLostPointerCapture={() => { drag.current = null; engine.current?.fire(false); }}
+    />
     <div className="zombie-hud">
       <header className="zombie-top">
         <div className="zombie-brand"><strong>DEAD CITY</strong><span>HUBSIDE SURVIVAL</span></div>
