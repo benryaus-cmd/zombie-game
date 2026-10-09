@@ -1,0 +1,31 @@
+{
+  "version": "zombie-touch-fire-gore-10oct2026",
+  "type": "incremental",
+  "repository": "benryaus-cmd/zombie-game",
+  "commit": "1c4aeb7cbca0bdf7d7aaf1c02864d50304fc9af0",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/1c4aeb7cbca0bdf7d7aaf1c02864d50304fc9af0/",
+  "fileCount": 5,
+  "description": "Dead City: remove on-screen FIRE and LOOK controls; swipe to aim, double-tap open world to shoot (hold second tap for automatic fire), bottom-right weapon cycling, optional light haptics, arm/torso recoil, camera shake and pooled blood impact effects. Existing portrait/landscape options, all assets, waves, city, portal and importer preserved.",
+  "files": [
+    {
+      "source": "src/zombie/ZombieGame.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/ZombieGame.tsx"
+    },
+    {
+      "source": "src/zombie/zombie.css",
+      "target": "src/games/importedGame/upstream/src/zombie/zombie.css"
+    },
+    {
+      "source": "src/zombie/controls.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/controls.ts"
+    },
+    {
+      "source": "src/zombie/survivor.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/survivor.ts"
+    },
+    {
+      "source": "src/zombie/bloodEffects.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/bloodEffects.ts"
+    }
+  ]
+}
