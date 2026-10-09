@@ -199,6 +199,7 @@ class ZombieEngine {
     const width = this.container.clientWidth, height = this.container.clientHeight;
     if (!width || !height) return;
     this.world.camera.aspect = width / height;
+    this.world.camera.fov=getTuning().cameraFOV;
     this.world.camera.updateProjectionMatrix();
     this.world.renderer.setSize(width, height);
   };
@@ -209,7 +210,7 @@ class ZombieEngine {
   dragLook(dx: number, dy: number) {
     if (this.paused || this.over) return;
     this.world.playerYaw -= dx * getTuning().swipeX;
-    this.world.playerPitch = THREE.MathUtils.clamp(this.world.playerPitch - dy * getTuning().swipeY, -.68, .68);
+    this.world.playerPitch = THREE.MathUtils.clamp(this.world.playerPitch - dy * getTuning().swipeY, getTuning().pitchMinimum, getTuning().pitchMaximum);
   }
   key(code: string, down: boolean) {
     if (down) this.keys.add(code); else this.keys.delete(code);
@@ -425,6 +426,7 @@ class ZombieEngine {
     const dt = Math.min((time - this.lastFrame) / 1000, .05);
     this.lastFrame = time;
     if (!this.paused && !this.over && this.ready) {
+      if(this.world.camera.fov!==getTuning().cameraFOV) {this.world.camera.fov=getTuning().cameraFOV;this.world.camera.updateProjectionMatrix();}
       const aim = aimAngles(this.world.playerYaw, this.world.playerPitch, (this.controls.lookInput?.x || 0)*getTuning().lookStickSpeed/2.9, this.controls.lookInput?.y || 0, dt);
       this.world.playerYaw = aim.yaw; this.world.playerPitch = aim.pitch;
       this.controls.moveSpeed=getTuning().moveSpeed; this.controls.jumpPower=getTuning().jumpPower;
@@ -482,10 +484,10 @@ class ZombieEngine {
     const world = this.world, yaw = world.playerYaw;
     const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
     const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
-    world.camera.position.copy(world.playerPosition).addScaledVector(forward, this.world.camera.aspect < 1 ? -4.4 : -3.3).addScaledVector(right, .85);
-    world.camera.position.y += .48;
-    const aim = world.playerPosition.clone().addScaledVector(forward, 12);
-    aim.y += .48 + Math.tan(world.playerPitch) * 15.3;
+    world.camera.position.copy(world.playerPosition).addScaledVector(forward, -(this.world.camera.aspect < 1 ? getTuning().cameraPortraitDistance : getTuning().cameraLandscapeDistance)).addScaledVector(right, getTuning().cameraShoulder);
+    world.camera.position.y += getTuning().cameraHeight;
+    const aim = world.playerPosition.clone().addScaledVector(forward, getTuning().aimDistance);
+    aim.y += getTuning().cameraHeight + Math.tan(world.playerPitch) * getTuning().aimPitchDistance;
     const ideal=world.camera.position.clone();
     const anchor=world.playerPosition.clone().add(new THREE.Vector3(0,.35,0)), toCamera=ideal.clone().sub(anchor);
     const clearance=wallDistance(new THREE.Ray(anchor,toCamera.clone().normalize()),world.colliders);

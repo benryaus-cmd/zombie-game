@@ -6,6 +6,16 @@ export const TUNING = {
   swipeX: ['Swipe horizontal','Movement',.006,.001,.025,.0005],
   swipeY: ['Swipe vertical','Movement',.004,.001,.025,.0005],
   lookStickSpeed: ['Look speed','Movement',2.9,.2,9,.1],
+  // Camera framing
+  cameraFOV: ['Camera field of view','Camera',76,35,115,1],
+  cameraPortraitDistance: ['Portrait camera distance','Camera',4.4,1,12,.2],
+  cameraLandscapeDistance: ['Landscape camera distance','Camera',3.3,1,12,.2],
+  cameraShoulder: ['Camera shoulder offset','Camera',.85,-3,3,.05],
+  cameraHeight: ['Camera height offset','Camera',.48,-2,4,.05],
+  aimDistance: ['Aim target distance','Camera',12,2,50,1],
+  aimPitchDistance: ['Pitch target scale','Camera',15.3,1,40,.5],
+  pitchMinimum: ['Maximum look down (rad)','Camera',-.68,-1.5,0,.02],
+  pitchMaximum: ['Maximum look up (rad)','Camera',.68,0,1.5,.02],
   // Weapons
   pistolDamage: ['Pistol base damage','Weapons',34,1,180,1],
   rifleDamage: ['Rifle base damage','Weapons',27,1,180,1],

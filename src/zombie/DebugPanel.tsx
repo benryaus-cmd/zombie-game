@@ -31,8 +31,7 @@ export default function DebugPanel({ onClose, orientation, haptics }: { onClose:
           return <div className="dc-debug-field" key={k}>
             <div><label htmlFor={'dc-'+k}>{label}</label><button title="Reset this value" onClick={() => resetTuning(k)}
               disabled={values[k] === DEFAULT_TUNING[k]}>↺</button></div>
-            <input id={'dc-'+k} type="number" min={min} max={max} step={step} value={values[k]}
-              onChange={event => { if (event.target.value !== '') setTuning(k,Number(event.target.value)); }} />
+            <TuningInput keyName={k} value={values[k]} min={min} max={max} step={step} />
           </div>;
         })}</div>
       </section>)}
@@ -44,4 +43,15 @@ export default function DebugPanel({ onClose, orientation, haptics }: { onClose:
       </div>
     </div>
   </div>;
+}
+
+function TuningInput({keyName,value,min,max,step}:{keyName:TuneKey;value:number;min:number;max:number;step:number}) {
+  const [draft,setDraft]=useState(String(value));
+  useEffect(()=>setDraft(String(value)),[value]);
+  return <input id={'dc-'+keyName} type="number" min={min} max={max} step={step}
+    value={draft} onChange={event=>{
+      const text=event.target.value;
+      setDraft(text);
+      if(text.trim()!=='' && Number.isFinite(Number(text)))setTuning(keyName,Number(text));
+    }} onBlur={()=>setDraft(String(getTuning()[keyName]))} />;
 }

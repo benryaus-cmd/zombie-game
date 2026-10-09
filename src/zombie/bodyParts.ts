@@ -84,7 +84,6 @@ export function updateDebris(piece:Debris,dt:number):boolean {
  const tuning=getTuning();
  piece.age+=dt;
  if(piece.age>tuning.debrisTime)return false;
- if(piece.rest>0 && piece.velocity.lengthSq()<.09) { piece.rest+=dt; return true; }
  piece.velocity.y-=tuning.debrisGravity*dt;
  piece.root.position.addScaledVector(piece.velocity,dt);
  piece.root.rotation.x+=piece.spin.x*dt; piece.root.rotation.y+=piece.spin.y*dt;
