@@ -1,0 +1,49 @@
+{
+  "results": {
+    "pass": [
+      "wave one starts with seven enemies",
+      "normal spawns produce full-body enemies",
+      "prepared full body is loaded",
+      "actual skeleton provides head torso arms and legs",
+      "pistol headshot kills exactly once",
+      "headshot detaches the actual prepared head",
+      "detached geometry is compact",
+      "dead enemy cannot be counted twice",
+      "dead zombie cannot attack",
+      "reload transfers exact rounds from reserve",
+      "weapon switch cancels reload",
+      "close shotgun arm hit removes matching arm",
+      "close shotgun leg hit removes matching leg",
+      "leg loss uses packaged crawl or death",
+      "zombie routes around a building without tunnelling",
+      "solid wall stops camera ray",
+      "blocked muzzle stops otherwise clear camera shot",
+      "combat clears wave 1 and advances",
+      "combat clears wave 2 and advances",
+      "combat clears wave 3 and advances",
+      "pause freezes combat and clears held controls",
+      "zombie attack causes player death",
+      "restart resets health waves ammo enemies debris and inputs"
+    ],
+    "kills": 0,
+    "requests": {
+      "geometries": 66,
+      "textures": 10
+    },
+    "elapsed": 1.5000000000000007
+  },
+  "errors": [],
+  "requests": [
+    "https://cdn.aippy.ai/static/asset-interceptor.js",
+    "https://cdn.aippy.ai/static/inspector.js",
+    "https://cdn.aippy.ai/asset/cfbed8301681433ca6fc655493cb8840.jpg?x-oss-process=style/p",
+    "https://cdn.aippy.ai/asset/8b4e67014e4e44d198e7b4f60bed81ba.jpg?x-oss-process=style/p",
+    "https://raw.githubusercontent.com/benryaus-cmd/graf-game/826fc2b1caa41c48cd338a665a5693444c4c9b81/public/assets/quarter/1Story_Sign.gltf",
+    "https://raw.githubusercontent.com/benryaus-cmd/graf-game/826fc2b1caa41c48cd338a665a5693444c4c9b81/public/assets/quarter/2Story_Balcony.gltf",
+    "https://raw.githubusercontent.com/benryaus-cmd/graf-game/826fc2b1caa41c48cd338a665a5693444c4c9b81/public/assets/quarter/2Story_Wide.gltf",
+    "https://raw.githubusercontent.com/benryaus-cmd/graf-game/826fc2b1caa41c48cd338a665a5693444c4c9b81/public/assets/quarter/3Story_Small.gltf",
+    "https://raw.githubusercontent.com/benryaus-cmd/graf-game/826fc2b1caa41c48cd338a665a5693444c4c9b81/public/assets/quarter/2Story_GableRoof.gltf",
+    "https://raw.githubusercontent.com/benryaus-cmd/graf-game/77b8bb73af715da9dbd691dbddae109316e394fd/public/assets/preview/building.glb",
+    "https://raw.githubusercontent.com/benryaus-cmd/graf-game/9328c81ea02b53a1f9a07be490164be501e87f25/public/assets/city/tree.gltf"
+  ]
+}

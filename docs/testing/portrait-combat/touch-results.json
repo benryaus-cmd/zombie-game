@@ -1,0 +1,86 @@
+[
+  {
+    "mode": "portrait",
+    "first": {
+      "yaw": -0.5925177015250533,
+      "pitch": 0,
+      "movement": {
+        "x": 0,
+        "y": 0.5446623093681916
+      },
+      "look": {
+        "x": 0.6808278867102396,
+        "y": 0
+      },
+      "firing": true,
+      "ammo": 28
+    },
+    "after": {
+      "firing": true,
+      "ammo": 27
+    }
+  },
+  {
+    "mode": "forced",
+    "first": {
+      "yaw": -0.355569852941177,
+      "pitch": 0,
+      "movement": {
+        "x": 0,
+        "y": 0.4901960784313726
+      },
+      "look": {
+        "x": 0.6127450980392154,
+        "y": 0
+      },
+      "firing": true,
+      "ammo": 28
+    },
+    "after": {
+      "firing": true,
+      "ammo": 27
+    }
+  },
+  {
+    "mode": "landscape",
+    "first": {
+      "yaw": -0.5922610294117636,
+      "pitch": 0,
+      "movement": {
+        "x": 0,
+        "y": 0.4901960784313726
+      },
+      "look": {
+        "x": 0.6127450980392157,
+        "y": 0
+      },
+      "firing": true,
+      "ammo": 27
+    },
+    "after": {
+      "firing": true,
+      "ammo": 26
+    }
+  },
+  {
+    "mode": "short",
+    "first": {
+      "yaw": -0.40736825980392477,
+      "pitch": 0,
+      "movement": {
+        "x": 0,
+        "y": 0.6127450980392157
+      },
+      "look": {
+        "x": 0.7659313725490194,
+        "y": 0
+      },
+      "firing": true,
+      "ammo": 29
+    },
+    "after": {
+      "firing": true,
+      "ammo": 27
+    }
+  }
+]

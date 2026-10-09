@@ -1,0 +1,65 @@
+[
+  {
+    "enemies": 0,
+    "drawCalls": 33,
+    "triangles": 16740,
+    "geometries": 66,
+    "textures": 10,
+    "meanFrameMs": 221.80833333332944,
+    "maxFrameMs": 453.5
+  },
+  {
+    "enemies": 6,
+    "drawCalls": 79,
+    "triangles": 57080,
+    "geometries": 81,
+    "textures": 18,
+    "meanFrameMs": 42.32499999999224,
+    "maxFrameMs": 129
+  },
+  {
+    "enemies": 12,
+    "drawCalls": 121,
+    "triangles": 104012,
+    "geometries": 81,
+    "textures": 24,
+    "meanFrameMs": 72.08333333333333,
+    "maxFrameMs": 186
+  },
+  {
+    "enemies": 18,
+    "drawCalls": 163,
+    "triangles": 150944,
+    "geometries": 81,
+    "textures": 30,
+    "meanFrameMs": 138.70833333333334,
+    "maxFrameMs": 285.79999999981374
+  },
+  {
+    "enemies": 0,
+    "drawCalls": 33,
+    "triangles": 16740,
+    "geometries": 81,
+    "textures": 12,
+    "meanFrameMs": 118.3666666666589,
+    "maxFrameMs": 172.5
+  },
+  {
+    "enemies": 18,
+    "drawCalls": 162,
+    "triangles": 152592,
+    "geometries": 81,
+    "textures": 30,
+    "meanFrameMs": 143.3500000000155,
+    "maxFrameMs": 301
+  },
+  {
+    "enemies": 0,
+    "drawCalls": 33,
+    "triangles": 16740,
+    "geometries": 81,
+    "textures": 12,
+    "meanFrameMs": 97.73333333331782,
+    "maxFrameMs": 152.79999999981374
+  }
+]
