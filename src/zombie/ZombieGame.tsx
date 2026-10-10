@@ -29,6 +29,8 @@ import { getTuning } from './tuning';
 import { awardKill, comboRemaining, newScore, type ScoreState } from './score';
 import DebugPanel from './DebugPanel';
 import DebugFPS from './DebugFPS';
+import TutorialOverlay from './TutorialOverlay';
+import { TUTORIAL_STEPS, tutorialComplete, type TutorialMetrics } from './tutorial';
 type Hud = {
   health: number; wave: number; kills: number; alive: number; queued: number;
   ammo: number; reserve: number; weapon: Weapon; reloading: boolean;
@@ -121,6 +123,8 @@ class ZombieEngine {
   private hurtUntil = 0;
   private hapticsEnabled = true;
   private developerPanelOpen = false;
+  private tutorialMode = false;
+  private tutorialActions = {lookPixels:0,jumps:0,shots:0,switches:0,reloads:0,pickups:0};
   private scenery: THREE.Group[] = [];
   private hitUntil = 0;
   private portal: THREE.Group;
@@ -203,6 +207,7 @@ class ZombieEngine {
       supplies:this.supplies.positions,buildings:this.world.colliders};
   }
   private giveSupply(kind:PickupType,amount:number) {
+    this.tutorialActions.pickups++;
     if(kind==='health')this.health=Math.min(100,this.health+amount);
     else this.reserve[kind]+=amount;
     this.pickupMessage=(kind==='health'?'HEALTH +':kind.toUpperCase()+' AMMO +')+amount;
@@ -255,6 +260,11 @@ class ZombieEngine {
     this.world.renderer.setSize(width, height);
   };
 
+  // Read-only action counts let a real in-world lesson confirm actual input.
+  tutorialSnapshot():TutorialMetrics {
+    return {x:this.world.playerPosition.x,z:this.world.playerPosition.z,...this.tutorialActions};
+  }
+  setTutorialMode(enabled:boolean) { this.tutorialMode=enabled; }
   move = (input: MovementInput) => { this.controls.movement = input; };
   look = (input: LookInput) => { this.controls.lookInput = input; };
   setHaptics(enabled: boolean) { this.hapticsEnabled = enabled; }
@@ -268,6 +278,7 @@ class ZombieEngine {
   setDeveloperPanelOpen(open: boolean) { this.developerPanelOpen = open; }
   dragLook(dx: number, dy: number) {
     if (this.paused || this.over) return;
+    this.tutorialActions.lookPixels+=Math.abs(dx)+Math.abs(dy);
     this.world.playerYaw -= dx * getTuning().swipeX;
     this.world.playerPitch = THREE.MathUtils.clamp(this.world.playerPitch - dy * getTuning().swipeY, getTuning().pitchMinimum, getTuning().pitchMaximum);
   }
@@ -279,9 +290,11 @@ class ZombieEngine {
     if (down && code === 'Digit2') this.equip('rifle');
     if (down && code === 'Digit3') this.equip('shotgun');
   }
-  jump = () => { if (!this.paused && !this.over) jumpWorld(this.world, this.controls.jumpPower); };
+  jump = () => { if (!this.paused && !this.over && this.ready) { this.tutorialActions.jumps++;jumpWorld(this.world, this.controls.jumpPower); } };
   fire = (down: boolean) => { this.firing = down; if (down) this.shoot(); };
   cycleWeapon() {
+    if(this.paused||this.over)return;
+    this.tutorialActions.switches++;
     const list: Weapon[] = ['pistol', 'rifle', 'shotgun'];
     this.equip(list[(list.indexOf(this.weapon) + 1) % list.length]);
   }
@@ -298,6 +311,7 @@ class ZombieEngine {
   reload() {
     if (this.paused || this.over || this.reloadTimer > 0) return;
     if (this.ammo[this.weapon] === WEAPONS[this.weapon].rounds || this.reserve[this.weapon] <= 0) return;
+    this.tutorialActions.reloads++;
     this.reloadTimer = this.weapon==='pistol'?getTuning().reloadPistol:this.weapon==='rifle'?getTuning().reloadRifle:getTuning().reloadShotgun;
     this.audio.play(this.weapon==='pistol'?'reload':this.weapon==='rifle'?'reloadRifle':'reloadShotgun');
     this.emitHud();
@@ -312,6 +326,7 @@ class ZombieEngine {
     this.nextShot = now + delay;
     this.muzzleUntil = now + t.flashTime;
     this.ammo[this.weapon]--;
+    this.tutorialActions.shots++;
     this.avatar?.shot();
     this.audio.play(this.weapon);
     this.cameraKick = Math.min(.9, this.cameraKick + (this.weapon === 'shotgun' ? t.kickShotgun : this.weapon === 'pistol' ? t.kickPistol : t.kickRifle));
@@ -607,18 +622,22 @@ class ZombieEngine {
       this.rainFx.update(dt);
       this.enemies = this.enemies.filter(e => this.updateEnemy(e, dt, now));
       const alive = this.enemies.filter(e => e.deadAt <= 0).length;
-      if (this.queued > 0 && alive < getTuning().zombieCap) {
-        this.spawnTimer -= dt;
-        if (this.spawnTimer <= 0) { this.spawn(); this.spawnTimer = Math.max(.1, getTuning().spawnInterval - this.wave * .04); }
-      }
-      if (this.queued <= 0 && alive === 0) {
-        this.countdown -= dt;
-        if (this.countdown <= 0) {
-          this.wave++;
-          this.queued = Math.min(100,Math.round(getTuning().waveBase + this.wave*getTuning().waveGrowth));
-          this.countdown = getTuning().betweenWaves;
-          this.spawnTimer = .1;
-          this.notice = 'WAVE ' + this.wave;
+      // Learn real controls in the real world before the first wave begins.
+      // Tutorial never runs the enemy-wave scheduler; ending it resumes as normal.
+      if (!this.tutorialMode) {
+        if (this.queued > 0 && alive < getTuning().zombieCap) {
+          this.spawnTimer -= dt;
+          if (this.spawnTimer <= 0) { this.spawn(); this.spawnTimer = Math.max(.1, getTuning().spawnInterval - this.wave * .04); }
+        }
+        if (this.queued <= 0 && alive === 0) {
+          this.countdown -= dt;
+          if (this.countdown <= 0) {
+            this.wave++;
+            this.queued = Math.min(100,Math.round(getTuning().waveBase + this.wave*getTuning().waveGrowth));
+            this.countdown = getTuning().betweenWaves;
+            this.spawnTimer = .1;
+            this.notice = 'WAVE ' + this.wave;
+          }
         }
       }
       this.portalNear = Math.hypot(this.world.playerPosition.x - this.portal.position.x,
@@ -651,6 +670,8 @@ class ZombieEngine {
     world.skyDome.position.copy(world.camera.position);
   }
   reset() {
+    this.tutorialMode=false;
+    this.tutorialActions={lookPixels:0,jumps:0,shots:0,switches:0,reloads:0,pickups:0};
     for (const enemy of this.enemies) this.removeEnemy(enemy);
     this.debris.forEach(disposeDebris); this.debris=[];
     this.blood.clear();this.trails.clear();this.pickupMessage='';this.pickupUntil=0;this.scoreState=newScore();this.callout='';this.calloutUntil=0;this.lastCallout=-100; this.cameraKick = 0; this.hurtUntil = 0;
@@ -713,11 +734,27 @@ export default function ZombieGame() {
   const [paused, setPaused] = useState(false);
   const [menu, setMenu] = useState(false);
   const [debugOpen,setDebugOpen] = useState(false);
+  const [tutorialActive,setTutorialActive]=useState(false);
+  const [tutorialStep,setTutorialStep]=useState(0);
+  const [tutorialDone,setTutorialDone]=useState(false);
+  const [tutorialRound,setTutorialRound]=useState(0);
+  const tutorialBaseline=useRef<TutorialMetrics|null>(null);
   const radio=useMetalRadio();
   const [radioActive,setRadioActive]=useState(false);
   const radioWasRunning=useRef(false);
   const readRadar=useCallback(()=>engine.current?.radarSnapshot()??null,[]);
   const onMove = useCallback((v: MovementInput) => engine.current?.move(v), []);
+  useEffect(()=>{
+    if(!tutorialActive)return;
+    tutorialBaseline.current=engine.current?.tutorialSnapshot()??null;
+    setTutorialDone(false);
+    const interval=window.setInterval(()=>{
+      const baseline=tutorialBaseline.current,snapshot=engine.current?.tutorialSnapshot();
+      if(baseline && snapshot && tutorialComplete(TUTORIAL_STEPS[tutorialStep].id,baseline,snapshot))
+        setTutorialDone(true);
+    },130);
+    return ()=>window.clearInterval(interval);
+  },[tutorialActive,tutorialStep,tutorialRound]);
   const [haptics, setHaptics] = useState(() => { try { return localStorage.getItem('dead-city-haptics') !== 'off'; } catch { return true; } });
   useEffect(() => {
     engine.current?.setHaptics(haptics);
@@ -762,10 +799,25 @@ export default function ZombieGame() {
   }, [orientation]);
   const start = () => {
     if (hud.over) engine.current?.reset();
+    engine.current?.setTutorialMode(false);setTutorialActive(false);
     engine.current?.setPaused(false);
     radio.play();
     setStarted(true); setPaused(false); setMenu(false);
 
+  };
+  const beginTutorial=()=>{
+    // A guided run ALWAYS begins from a fresh wave zero, even after GAME OVER.
+    engine.current?.reset();engine.current?.setTutorialMode(true);
+    engine.current?.setPaused(false);
+    radio.play();setTutorialStep(0);setTutorialDone(false);setTutorialRound(n=>n+1);
+    setTutorialActive(true);setStarted(true);setPaused(false);setMenu(false);setDebugOpen(false);
+  };
+  const endTutorial=()=>{
+    engine.current?.setTutorialMode(false);setTutorialActive(false);setTutorialDone(false);
+  };
+  const nextTutorialStep=()=>{
+    if(tutorialStep>=TUTORIAL_STEPS.length-1)endTutorial();
+    else setTutorialStep(step=>step+1);
   };
   const pause = () => { engine.current?.setDeveloperPanelOpen(false); engine.current?.setPaused(true); setPaused(true); setMenu(true); setDebugOpen(false); };
   const openDebug = () => {engine.current?.setDeveloperPanelOpen(true);engine.current?.setPaused(false);radio.play();setStarted(true);setMenu(false);setPaused(false);setDebugOpen(true);};
@@ -790,7 +842,8 @@ export default function ZombieGame() {
     } else lastTap.current = null;
     drag.current = null;
   };
-  return <div ref={root} className={`zombie-root ${rotated ? 'game-portrait zombie-rotated' : ''}`} data-orientation={orientation}>
+  return <div ref={root} className={`zombie-root ${rotated ? 'game-portrait zombie-rotated' : ''}`} data-orientation={orientation}
+    data-tutorial-step={tutorialActive?TUTORIAL_STEPS[tutorialStep].id:undefined}>
     <div ref={mount} className="world-mount" aria-label="3D zombie survival city"
       onPointerDown={event => {
         if (!started || paused || hud.over || drag.current || (event.pointerType === 'mouse' && event.button !== 0)) return;
@@ -820,7 +873,7 @@ export default function ZombieGame() {
       {started && hud.hurt && !paused && <div className="zombie-damage-flash" aria-hidden="true" />}
       <header className="zombie-top">
         <div className="zombie-health"><span>HP {hud.health}%</span><div><i style={{ width: hud.health + '%' }} /></div></div>
-        <div className="zombie-wave"><strong>WAVE {hud.wave}</strong><small>{hud.alive + hud.queued} REMAINING</small></div>
+        <div className="zombie-wave"><strong>{tutorialActive?'TRAINING':`WAVE ${hud.wave}`}</strong><small>{tutorialActive?'LEARN THE CONTROLS':`${hud.alive+hud.queued} REMAINING`}</small></div>
         <div className="zombie-kills">KILLS <strong>{hud.kills}</strong></div>
         <div className="zombie-score">SCORE <strong>{hud.score.toLocaleString()}</strong>
           {hud.multiplier>1 && <small>×{hud.multiplier} COMBO</small>}</div>
@@ -844,9 +897,13 @@ export default function ZombieGame() {
           </button>
           <button className="zombie-reload" onClick={() => engine.current?.reload()} aria-label="Reload weapon">RELOAD</button>
         </div>
-        {hud.queued === 0 && hud.alive === 0 && <div className="zombie-next-wave">NEXT WAVE IN {Math.max(0, Math.ceil(hud.countdown))}</div>}
+        {!tutorialActive && hud.queued === 0 && hud.alive === 0 && <div className="zombie-next-wave">NEXT WAVE IN {Math.max(0, Math.ceil(hud.countdown))}</div>}
         {hud.portal && <button className="zombie-portal-link" onClick={() => window.open(HUBSIDE_URL, '_blank', 'noopener,noreferrer')}>ENTER PORTAL · HUBSIDE ↗</button>}
       </>}
+      {tutorialActive && started && !hud.over && !radioActive &&
+        <TutorialOverlay step={tutorialStep} complete={tutorialDone} paused={paused}
+          onBack={()=>setTutorialStep(i=>Math.max(0,i-1))}
+          onNext={nextTutorialStep} onSkip={endTutorial} />}
       {(!started || menu || hud.over) && !radioActive && <div className="zombie-overlay">
         <div className="zombie-panel">
           <span className="zombie-eyebrow">HUBSIDE WORLDS</span>
@@ -859,7 +916,10 @@ export default function ZombieGame() {
             <button aria-pressed={haptics} onClick={() => setHaptics(v => !v)}>HAPTICS {haptics ? 'ON' : 'OFF'}</button>
           </div>
           <button className="zombie-start" onClick={hud.over || !started ? start : resume} disabled={!hud.ready}>{hud.over ? 'TRY AGAIN' : started ? 'RESUME' : 'START SURVIVING'}</button>
-          {started && !hud.over && <button className="zombie-secondary" onClick={() => { engine.current?.reset(); setMenu(false); setPaused(false); }}>RESTART</button>}
+          <button className="zombie-tutorial-launch" onClick={beginTutorial} disabled={!hud.ready}>
+            {tutorialActive?'RESTART TUTORIAL':'HOW TO PLAY · INTERACTIVE TUTORIAL'}
+          </button>
+          {started && !hud.over && <button className="zombie-secondary" onClick={() => { engine.current?.reset(); setTutorialActive(false);setMenu(false); setPaused(false); }}>RESTART</button>}
           <button className="zombie-secondary" onClick={() => window.open(HUBSIDE_URL, '_blank', 'noopener,noreferrer')}>GO TO HUBSIDE ↗</button>
         </div>
       </div>}

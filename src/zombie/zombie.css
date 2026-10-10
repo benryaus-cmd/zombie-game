@@ -250,3 +250,11 @@
  .dc-radar {top:61px;width:74px;height:74px;}
  .zombie-hud .dc-radio-mini {top:77px;left:92px;}
 }
+
+/* Launches the real in-world lesson from the existing start/pause menu. */
+.zombie-panel .zombie-tutorial-launch {
+ display:block;width:100%;min-height:41px;padding:9px 12px;
+ border:1px solid #83b8af;background:#14363c;color:#d6fff2;
+ font-size:11px;letter-spacing:.045em;font-weight:900;
+}
+.zombie-panel .zombie-tutorial-launch:disabled {opacity:.4;}
