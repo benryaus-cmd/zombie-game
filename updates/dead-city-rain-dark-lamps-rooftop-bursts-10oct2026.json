@@ -1,0 +1,43 @@
+{
+  "version": "dead-city-rain-dark-lamps-rooftop-bursts-10oct2026",
+  "type": "incremental",
+  "repository": "benryaus-cmd/zombie-game",
+  "commit": "7d03a59f68a10e6cde97b1d18b9af653b28c1c09",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/7d03a59f68a10e6cde97b1d18b9af653b28c1c09/",
+  "fileCount": 8,
+  "description": "Remove all visible burning-barrel props and their rendering; streetlights are usually OFF with independent bright flicker-ON pulses including real nearby illumination; stop always-on moving survivor fill light; add tuning for lamp ON frequency, chance, duration, range, brightness, idle glow and warmth; spawn rooftop firefights dynamically from many locations (incl distant 200m origins) aiming IN towards city with single 4-9 round or double 3-5 round bursts ~0.5s apart; add adjustable rain (0-1800 streaks, one draw call); replace debug modal with draggable collapsible overlay that still displays FPS when minimized; adapt warzone defaults to owner's supplied 10 Oct settings, preserve other tuning/gameplay. No full import or binary assets.",
+  "files": [
+    {
+      "source": "src/zombie/ZombieGame.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/ZombieGame.tsx"
+    },
+    {
+      "source": "src/zombie/WarzoneAtmosphere.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/WarzoneAtmosphere.ts"
+    },
+    {
+      "source": "src/zombie/RainEffects.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/RainEffects.ts"
+    },
+    {
+      "source": "src/game/cityAtmosphere.ts",
+      "target": "src/games/importedGame/upstream/src/game/cityAtmosphere.ts"
+    },
+    {
+      "source": "src/zombie/tuning.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/tuning.ts"
+    },
+    {
+      "source": "src/zombie/DebugPanel.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/DebugPanel.tsx"
+    },
+    {
+      "source": "src/zombie/debug.css",
+      "target": "src/games/importedGame/upstream/src/zombie/debug.css"
+    },
+    {
+      "source": "src/zombie/audio.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/audio.ts"
+    }
+  ]
+}
