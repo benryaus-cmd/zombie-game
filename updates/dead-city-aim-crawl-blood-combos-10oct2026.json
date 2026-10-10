@@ -1,0 +1,47 @@
+{
+  "version": "dead-city-aim-crawl-blood-combos-10oct2026",
+  "type": "incremental",
+  "repository": "benryaus-cmd/zombie-game",
+  "commit": "19db8ecd58f178d12439c409f0776d386b8fe145",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/19db8ecd58f178d12439c409f0776d386b8fe145/",
+  "fileCount": 9,
+  "description": "Dead City: tracer muzzle streaks converge on camera ray when cameraHeight changes; authored crawl animation grounded by animated hands; spurting blood on severed arm/leg joints with dark red, rare black and green droplets; three local CC0 combo callout cues; adopted owner-tested tuning defaults. Source audio listener was already attached to player position, so no fictitious listener change.",
+  "files": [
+    {
+      "source": "src/zombie/ZombieGame.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/ZombieGame.tsx"
+    },
+    {
+      "source": "src/zombie/shotTrails.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/shotTrails.ts"
+    },
+    {
+      "source": "src/zombie/bodyParts.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/bodyParts.ts"
+    },
+    {
+      "source": "src/zombie/bloodEffects.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/bloodEffects.ts"
+    },
+    {
+      "source": "src/zombie/audio.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/audio.ts"
+    },
+    {
+      "source": "src/zombie/tuning.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/tuning.ts"
+    },
+    {
+      "source": "public/audio/sfx/combo-hit.ogg",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/combo-hit.ogg"
+    },
+    {
+      "source": "public/audio/sfx/combo-up.ogg",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/combo-up.ogg"
+    },
+    {
+      "source": "public/audio/sfx/combo-big.ogg",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/combo-big.ogg"
+    }
+  ]
+}
