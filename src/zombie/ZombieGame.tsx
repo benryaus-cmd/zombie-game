@@ -30,7 +30,7 @@ type Hud = {
 type Enemy = {
   root: THREE.Group; mixer: THREE.AnimationMixer | null; action: THREE.AnimationAction | null;
   model: Model | null; missing: Set<Region>; anim: string; reactUntil: number; waypoint: THREE.Vector2 | null; routeAt: number;
-  x: number; z: number; hp: number; speed: number; hitAt: number; deadAt: number; baseVisualY:number; nextVocalAt:number;
+  x: number; z: number; hp: number; speed: number; hitAt: number; deadAt: number; baseVisualY:number; nextVocalAt:number; bleedUntil:number; nextBleedAt:number;
 };
 const INITIAL_HUD: Hud = { health: 100, wave: 0, kills: 0, alive: 0, queued: 0, ammo: 12, reserve: 96, weapon: 'pistol', reloading: false, countdown: 0, over: false, ready: false, notice: 'LOADING THE CITY...', portal: false, hit: false, hurt: false, score:0, multiplier:1, combo:0, callout:'' };
 const HUBSIDE_URL = 'https://preview--55efd0b1-9368-4172-9456-53db458ef667.aippy.live';
@@ -278,7 +278,7 @@ class ZombieEngine {
     const spheres = this.enemies.filter(e => e.deadAt <= 0).map(enemy => ({ enemy, spheres: bodySpheres(enemy.root, enemy.missing) }));
     for (let pellet = 0; pellet < pelletCount; pellet++) {
       // The centre pellet remains exact; others sample an even cone around it.
-      const angle = pellet * 2.39996, scatter = spread * Math.sqrt((pellet + .2) / pelletCount);
+      const angle = pellet * 2.39996, scatter = pellet===0 ? 0 : spread * Math.sqrt(pellet / pelletCount);
       const direction = base.clone().addScaledVector(right, Math.cos(angle)*scatter).addScaledVector(up, Math.sin(angle)*scatter).normalize();
       const ray = new THREE.Ray(camera.position.clone(), direction);
       const wall = wallDistance(ray, this.world.colliders);
@@ -288,9 +288,14 @@ class ZombieEngine {
         const hit = nearestHit(ray, entry.spheres.filter(s=>!entry.enemy.missing.has(s.region)), Math.min(config.range, wall));
         if (hit && (!target || hit.distance < target.distance)) target = { enemy: entry.enemy, ...hit };
       }
-      // Show a very brief, pooled bullet streak even when the bullet misses.
-      if (pellet===0 || (this.weapon==='shotgun' && pellet%3===0))
-        this.trails.shot(muzzle,direction,target?.distance ?? Math.min(config.range,wall));
+      // Hitscan aims down the CAMERA reticle. A visible round leaves the real muzzle
+      // and converges onto that camera-ray impact point, even with a high camera.
+      const aimDistance=Math.min(config.range, wall, target?.distance ?? Infinity);
+      const aimPoint=ray.at(aimDistance,new THREE.Vector3());
+      if (pellet===0 || (this.weapon==='shotgun' && pellet%3===0)) {
+        const fromMuzzle=aimPoint.clone().sub(muzzle);
+        this.trails.shot(muzzle,fromMuzzle,fromMuzzle.length());
+      }
       if (!target) {
         if(pellet===0 && Number.isFinite(wall) && wall<config.range)
           this.audio.play('impact',ray.at(wall,new THREE.Vector3()),'impact-world');
@@ -309,6 +314,7 @@ class ZombieEngine {
         const piece = detachRegion(enemy.root,region,direction);
         if (piece) {
           this.world.scene.add(piece.root); this.debris.push(piece); enemy.missing.add(region);
+           enemy.bleedUntil=now+t.stumpBleedSeconds;enemy.nextBleedAt=now+.05;
           this.blood.burst(target.point, direction, 22, getGroundHeight(this.world,enemy.x,enemy.z), true);
           if (region === 'head') enemy.hp = 0;
           while (this.debris.length > getTuning().maxDebris) disposeDebris(this.debris.shift()!);
@@ -329,6 +335,8 @@ class ZombieEngine {
     if (this.elapsed-this.lastCallout>1.8 && (this.scoreState.comboCount>=2 || enemy.missing.size>0 || Math.random()<.35)) {
       this.callout=awarded.callout + (this.scoreState.multiplier>1?'  ×'+this.scoreState.multiplier:'');
       this.calloutUntil=this.elapsed+1.55;this.lastCallout=this.elapsed;
+      if(this.scoreState.multiplier>=2)
+        this.audio.play(this.scoreState.multiplier>=5?'comboBig':this.scoreState.multiplier>=3?'comboUp':'comboHit');
     }
     this.blood.burst(new THREE.Vector3(enemy.x, enemy.root.position.y + 1.05, enemy.z),
       new THREE.Vector3(Math.random() - .5, .45, Math.random() - .5).normalize(),
@@ -368,7 +376,7 @@ class ZombieEngine {
       if (clip) { action = mixer.clipAction(clip); action.play(); }
     }
     this.enemies.push({ root: body, model, mixer, action, anim: 'Run_Arms', missing: new Set(), reactUntil: 0, waypoint: null, routeAt: 0, x, z, hp: model === this.variants[1] ? getTuning().heavyZombieHP : getTuning().baseZombieHP + Math.min(60,this.wave*4),
-      speed: getTuning().zombieSpeed + this.wave * getTuning().speedPerWave + Math.random() * .35, hitAt: 0, deadAt: 0, baseVisualY:visual.position.y, nextVocalAt:this.elapsed+2+Math.random()*6 });
+      speed: getTuning().zombieSpeed + this.wave * getTuning().speedPerWave + Math.random() * .35, hitAt: 0, deadAt: 0, baseVisualY:visual.position.y, nextVocalAt:this.elapsed+2+Math.random()*6, bleedUntil:0, nextBleedAt:0 });
     this.audio.play('alert',new THREE.Vector3(x,body.position.y+1,z),'alert-'+body.id);
     this.queued--;
   }
@@ -380,8 +388,11 @@ class ZombieEngine {
     // Leg states intentionally kept separate: one leg hops, two legs crawl.
     if (!enemy.deadAt && enemy.mixer && enemy.model) {
       const distance = Math.hypot(enemy.x-this.world.playerPosition.x,enemy.z-this.world.playerPosition.z);
-      const wanted = now < enemy.reactUntil ? 'HitReact' : distance < 1.4 ? 'Idle_Attack' :
-        crawling ? 'Crawl' : hopping ? 'Walk' : 'Run_Arms';
+      // Use the REAL authored crawl clip (no forced pitch/rotation overlay).
+      const crawlClip=enemy.model.animations.find(c=>/crawl/i.test(c.name));
+      const wanted = crawling && crawlClip ? crawlClip.name :
+        now < enemy.reactUntil ? 'HitReact' : distance < 1.4 ? 'Idle_Attack' :
+        hopping ? 'Walk' : 'Run_Arms';
       if (enemy.anim !== wanted) {
         const clip = enemy.model.animations.find(c=>c.name === wanted);
         if (clip) { const next=enemy.mixer.clipAction(clip);next.reset().play();if(enemy.action)next.crossFadeFrom(enemy.action,.1,false);enemy.action=next;enemy.anim=wanted; }
@@ -439,6 +450,20 @@ class ZombieEngine {
     const visual=enemy.root.children[0] as THREE.Group | undefined;
     if(visual)positionDamagedZombie(enemy.root,visual,enemy.missing,enemy.baseVisualY,
       floor,now,t.hopHeight,t.hopFrequency);
+    if(enemy.missing.size && now<enemy.bleedUntil && now>=enemy.nextBleedAt) {
+      enemy.nextBleedAt=now+Math.max(.06,t.stumpBleedInterval);
+      const parts:{region:Region,bone:string}[]=[
+        {region:'arm-l',bone:'UpperArmL'},{region:'arm-r',bone:'UpperArmR'},
+        {region:'leg-l',bone:'UpperLegL'},{region:'leg-r',bone:'UpperLegR'}];
+      enemy.root.updateMatrixWorld(true);
+      for(const {region,bone} of parts)if(enemy.missing.has(region)){
+        const joint=enemy.root.getObjectByName(bone);
+        if(!joint)continue;
+        const point=joint.getWorldPosition(new THREE.Vector3());
+        const outward=new THREE.Vector3(Math.random()-.5,.1+Math.random()*.35,Math.random()-.5).normalize();
+        this.blood.burst(point,outward,t.stumpBleedStrength,floor);
+      }
+    }
     return true;
   }
 

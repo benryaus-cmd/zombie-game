@@ -55,7 +55,7 @@ export class BloodEffects {
     scene.add(this.points);
     this.decals = new THREE.InstancedMesh(
       new THREE.PlaneGeometry(1, 1),
-      new THREE.MeshBasicMaterial({ color: '#981619', map: this.splatterTexture, transparent: true,
+      new THREE.MeshBasicMaterial({ color: '#571013', map: this.splatterTexture, transparent: true,
         side: THREE.DoubleSide, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }),
       STAINS,
     );
@@ -86,10 +86,21 @@ export class BloodEffects {
         heading.z * speed + (Math.random() - .5) * 4,
       );
       this.drops[i].life = .35 + Math.random() * .75;
-      const shade = Math.random();
-      this.colours[p] = .56 + shade * .44;
-      this.colours[p + 1] = .012 + shade * .045;
-      this.colours[p + 2] = .012 + shade * .055;
+      // Infected blood: predominantly deep crimson, with rare dark/green flecks.
+      const fleck = Math.random(), shade = Math.random();
+      if (fleck < .085) { // clot-like black specks
+        this.colours[p] = .027 + shade*.025;
+        this.colours[p + 1] = .018 + shade*.016;
+        this.colours[p + 2] = .019 + shade*.012;
+      } else if (fleck < .14) { // sparse infected green particles
+        this.colours[p] = .085 + shade*.065;
+        this.colours[p + 1] = .16 + shade*.14;
+        this.colours[p + 2] = .026 + shade*.03;
+      } else { // the large majority is DARK red, not cherry bright
+        this.colours[p] = .24 + shade*.31;
+        this.colours[p + 1] = .004 + shade*.025;
+        this.colours[p + 2] = .009 + shade*.025;
+      }
     }
     (this.points.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
     (this.points.geometry.attributes.color as THREE.BufferAttribute).needsUpdate = true;

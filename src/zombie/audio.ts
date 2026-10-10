@@ -22,6 +22,9 @@ const URLS: Record<string,string> = {
   'zombie-10.wav': new URL('../../public/audio/sfx/zombie-10.wav', import.meta.url).href,
   'zombie-11.wav': new URL('../../public/audio/sfx/zombie-11.wav', import.meta.url).href,
   'zombie-12.wav': new URL('../../public/audio/sfx/zombie-12.wav', import.meta.url).href,
+  'combo-hit.ogg': new URL('../../public/audio/sfx/combo-hit.ogg', import.meta.url).href,
+  'combo-up.ogg': new URL('../../public/audio/sfx/combo-up.ogg', import.meta.url).href,
+  'combo-big.ogg': new URL('../../public/audio/sfx/combo-big.ogg', import.meta.url).href,
   'reload.ogg': new URL('../../public/audio/sfx/reload.ogg', import.meta.url).href,
   'reload-rifle.ogg': new URL('../../public/audio/sfx/reload-rifle.ogg', import.meta.url).href,
   'reload-shotgun.ogg': new URL('../../public/audio/sfx/reload-shotgun.ogg', import.meta.url).href,
@@ -29,7 +32,7 @@ const URLS: Record<string,string> = {
   'bullet-impact-0.ogg': new URL('../../public/audio/sfx/bullet-impact-0.ogg', import.meta.url).href,
   'bullet-impact-1.ogg': new URL('../../public/audio/sfx/bullet-impact-1.ogg', import.meta.url).href,
 };
-export type SfxEvent = 'pistol'|'rifle'|'shotgun'|'idle'|'alert'|'attack'|'hurt'|'death'|'critical'|'crawl'|'reload'|'reloadRifle'|'reloadShotgun'|'empty'|'impact';
+export type SfxEvent = 'pistol'|'rifle'|'shotgun'|'idle'|'alert'|'attack'|'hurt'|'death'|'critical'|'crawl'|'reload'|'reloadRifle'|'reloadShotgun'|'empty'|'impact'|'comboHit'|'comboUp'|'comboBig';
 const CLIPS: Record<SfxEvent,string[]> = {
  pistol:['pistol-0.wav','pistol-1.wav','pistol-2.wav'],
  rifle:['rifle-0.wav','rifle-1.wav','rifle-2.wav'],
@@ -46,6 +49,7 @@ const CLIPS: Record<SfxEvent,string[]> = {
  reloadShotgun:['reload-shotgun.ogg'],
  empty:['empty-click.ogg'],
  impact:['bullet-impact-0.ogg','bullet-impact-1.ogg'],
+ comboHit:['combo-hit.ogg'],comboUp:['combo-up.ogg'],comboBig:['combo-big.ogg'],
 };
 type Playback = {category:'weapon'|'zombie'|'ui';started:number};
 export class ZombieAudio {
@@ -119,10 +123,10 @@ export class ZombieAudio {
  }
  play(event:SfxEvent,pos?:THREE.Vector3,gateKey?:string) {
   const ctx=this.context;if(this.disposed||!ctx||ctx.state!=='running')return;
-  const t=getTuning(), category=event==='pistol'||event==='rifle'||event==='shotgun'?'weapon':(event==='reload'||event==='reloadRifle'||event==='reloadShotgun'||event==='empty')?'ui':'zombie';
+  const t=getTuning(), category=event==='pistol'||event==='rifle'||event==='shotgun'?'weapon':(event==='reload'||event==='reloadRifle'||event==='reloadShotgun'||event==='empty'||event.startsWith('combo'))?'ui':'zombie';
   const now=ctx.currentTime;
   const key=gateKey||event;
-  const minGap=category==='zombie'?t.zombieMinGap:event==='empty'?.11:0;
+  const minGap=category==='zombie'?t.zombieMinGap:event==='empty'?.11:event.startsWith('combo')?.55:0;
   if(now-(this.cooldowns.get(key)||-100)<minGap)return;
   if(category==='zombie'){
    const distance=pos?.distanceTo(this.listenerPosition)||0;
@@ -141,7 +145,7 @@ export class ZombieAudio {
    const source=ctx.createBufferSource();source.buffer=buffer;
    source.playbackRate.value=1+(Math.random()-.5)*2*(category==='zombie'?t.zombiePitchVariation:t.gunPitchVariation);
    const gain=ctx.createGain();
-   gain.gain.value=category==='zombie'?.7:1;
+   gain.gain.value=category==='zombie'?.7:event.startsWith('combo')?t.comboVolume:1;
    source.connect(gain);
    if(category==='zombie'&&pos){
     const pan=ctx.createPanner();pan.panningModel='HRTF';pan.distanceModel='inverse';

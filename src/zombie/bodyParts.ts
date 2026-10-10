@@ -125,16 +125,24 @@ export function positionDamagedZombie(
  hopHeight:number,hopFrequency:number,
 ) {
  const left=missing.has('leg-l'),right=missing.has('leg-r');
- visual.rotation.x=left&&right ? -.56 : 0;
+ // Play the authored Crawl animation as-is. A manual X rotation turned that
+ // already-horizontal pose into an underground one on slopes.
+ visual.rotation.x=0;
  visual.position.y=originalY;
  root.position.y=floor;
  root.updateMatrixWorld(true);
  if(left&&right) {
-   // Ground-align on the torso, NOT the old pre-rotation feet; avoids buried heads.
-   const torso=bone(visual,'Abdomen','Torso','Spine');
-   if(torso){
-     const y=torso.getWorldPosition(new THREE.Vector3()).y;
-     visual.position.y+=floor+.54-y;
+   // Plant the animated hands on the ground; no hardcoded rotation or downward offset.
+   // Use the torso as fallback for rigs without useful hand bones.
+   const hands=[bone(visual,'HandL','Hand.L','Middle1L','LowerArmL'),
+                bone(visual,'HandR','Hand.R','Middle1R','LowerArmR')].filter(
+                 (hand):hand is THREE.Object3D=>hand!==null);
+   if(hands.length) {
+     const lowest=Math.min(...hands.map(hand=>hand.getWorldPosition(new THREE.Vector3()).y));
+     visual.position.y += (floor+.08) - lowest;
+   } else {
+     const torso=bone(visual,'Abdomen','Torso','Spine');
+     if(torso)visual.position.y += floor+.48-torso.getWorldPosition(new THREE.Vector3()).y;
    }
    return;
  }

@@ -43,3 +43,14 @@ The suggested `flareteam/flare-game` assets were not imported. That game's repos
 `src/zombie/audio.ts`: browser Web Audio mixer, decode/caching, unlock on START and resume, overlapping gun report AudioBufferSourceNodes, positional limited zombie voices, distance falloff, random takes/pitch, three buses, live settings in `src/zombie/tuning.ts`. Gun sounds always 2D and prominent. On mobile, vibration is independent of Web Audio support. Audio context and buffers are disposed on cleanup.
 
 Short WAVs were retained at their original size/format for this first integration. They are browser-compatible but not yet re-encoded as OGG. If future transfer size or build size is a problem, batch convert these chosen clips to compressed OGG and update source URL table.
+
+## Score multiplier cues (CC0)
+
+Short, local event stingers copied from the `Mcamento8/open-game-sfx-index` CC0 archive:
+- `combo-hit.ogg`: `audio/interface-sounds/confirmation_002.ogg` (Kenney interface cue)
+- `combo-up.ogg`: `audio/digital-audio/powerUp3.ogg` (Kenney digital cue)
+- `combo-big.ogg`: `audio/digital-audio/highUp.ogg` (Kenney digital cue)
+https://github.com/Mcamento8/open-game-sfx-index/blob/main/ATTRIBUTION.md
+
+These cues play only when a multi-kill pop-up occurs. They use the `comboVolume`
+setting and have their own cooldown to avoid cluttering automatic gunfire.

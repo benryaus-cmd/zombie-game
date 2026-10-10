@@ -37,6 +37,18 @@ test('crawlers align torso above ground rather than sinking below terrain', () =
  const head=new THREE.Group();head.name='Head';head.position.y=1.9;visual.add(head);
  positionDamagedZombie(root,visual,new Set(['leg-l','leg-r']),0,5,1,.2,8);
  root.updateMatrixWorld(true);
- assert.ok(Math.abs(torso.getWorldPosition(new THREE.Vector3()).y-5.54)<.005);
+ assert.ok(Math.abs(torso.getWorldPosition(new THREE.Vector3()).y-5.48)<.005);
  assert.ok(head.getWorldPosition(new THREE.Vector3()).y>5.5);
+});
+
+test('crawling uses authored animation pose and keeps animated hands on floor', () => {
+ const root=new THREE.Group(),visual=new THREE.Group();root.add(visual);
+ const handL=new THREE.Group();handL.name='HandL';handL.position.set(-.3,.21,.5);visual.add(handL);
+ const handR=new THREE.Group();handR.name='HandR';handR.position.set(.3,.18,.5);visual.add(handR);
+ const torso=new THREE.Group();torso.name='Torso';torso.position.y=.72;visual.add(torso);
+ positionDamagedZombie(root,visual,new Set(['leg-l','leg-r']),0,3,1,.2,8);
+ root.updateMatrixWorld(true);
+ assert.ok(Math.abs(handR.getWorldPosition(new THREE.Vector3()).y-3.08)<.005);
+ assert.equal(visual.rotation.x,0,'never rotate authored crawling animation');
+ assert.ok(torso.getWorldPosition(new THREE.Vector3()).y>3.4);
 });
