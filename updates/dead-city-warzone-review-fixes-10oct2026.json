@@ -1,0 +1,43 @@
+{
+  "version": "dead-city-warzone-review-fixes-10oct2026",
+  "type": "incremental",
+  "repository": "benryaus-cmd/zombie-game",
+  "commit": "7bea4a157f3ecb8368c9a1a72422b7debb18e2b4",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/7bea4a157f3ecb8368c9a1a72422b7debb18e2b4/",
+  "fileCount": 8,
+  "description": "Dead City warzone follow-up to rendered Chromium inspection: stable-grid cached zombie detours for west wall; moving occluded but fog-immune rooftop tracers, grouped muzzle-synchronised bursts; much louder separately controlled spatial gunfire/explosions; improved open barrels, jagged depth-writing flame core, masked smoke/glow/explosion, blood/fire layering; Map2 instanced streetlight flicker; cleanup/pause and reset, Android live audio previews. No new binary assets; do not full reimport or touch HubSide/server.",
+  "files": [
+    {
+      "source": "src/zombie/ZombieGame.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/ZombieGame.tsx"
+    },
+    {
+      "source": "src/zombie/navigation.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/navigation.ts"
+    },
+    {
+      "source": "src/zombie/WarzoneAtmosphere.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/WarzoneAtmosphere.ts"
+    },
+    {
+      "source": "src/zombie/audio.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/audio.ts"
+    },
+    {
+      "source": "src/zombie/tuning.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/tuning.ts"
+    },
+    {
+      "source": "src/zombie/DebugPanel.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/DebugPanel.tsx"
+    },
+    {
+      "source": "src/zombie/bloodEffects.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/bloodEffects.ts"
+    },
+    {
+      "source": "src/game/cityAtmosphere.ts",
+      "target": "src/games/importedGame/upstream/src/game/cityAtmosphere.ts"
+    }
+  ]
+}
