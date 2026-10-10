@@ -20,6 +20,7 @@ import { ShotTrails, tracerToReticle } from './shotTrails';
 import { planStreetPath, nearbyBuildings, stepSeparated, reachableSpawnArea } from './navigation';
 import { isInsideBuilding } from '@/game/morningQuarterLayout';
 import { WarzoneAtmosphere } from './WarzoneAtmosphere';
+import { DeadCityRain } from './RainEffects';
 import type { Collider } from './combat';
 import { SupplyDrops, type PickupType } from './Pickups';
 import Radar, { type RadarFrame } from './Radar';
@@ -108,6 +109,7 @@ class ZombieEngine {
   private routeBudget=2;
   private supplies: SupplyDrops;
   private warzone: WarzoneAtmosphere;
+  private rainFx: DeadCityRain;
   private lastHitVibrate = -100;
   private pickupMessage = '';
   private pickupUntil = 0;
@@ -159,6 +161,9 @@ class ZombieEngine {
 
   constructor(private container: HTMLDivElement, private onHud: (state: Hud) => void) {
     this.world = createWorld(container, .06, 'map2');
+    // The inherited moving fill light sweeps across the hero's head while running.
+    // Flickering world lamps now provide local lighting instead.
+    this.world.scene.userData.deadCityNoFollowerLight=true;
     this.blood = new BloodEffects(this.world.scene);
     this.trails = new ShotTrails(this.world.scene);
 
@@ -170,6 +175,7 @@ class ZombieEngine {
     this.world.updateChunks(this.world.playerPosition.x, this.world.playerPosition.z);
     this.supplies = new SupplyDrops(this.world, (kind,amount)=>this.giveSupply(kind,amount));
     this.warzone = new WarzoneAtmosphere(this.world,(event,pos)=>this.audio.play(event,pos));
+    this.rainFx = new DeadCityRain(this.world);
     // The inherited worldMovement calls the expensive chunk/LOD updater each
     // animation frame, including while jumping. Keep streaming responsive
     // without rebuilding geometry/LOD every airborne frame.
@@ -598,6 +604,7 @@ class ZombieEngine {
       this.audio.update(this.world.playerPosition,this.world.camera.getWorldDirection(new THREE.Vector3()));
       this.supplies.update(dt);
       this.warzone.update(dt,this.world.playerPosition,this.world.camera);
+      this.rainFx.update(dt);
       this.enemies = this.enemies.filter(e => this.updateEnemy(e, dt, now));
       const alive = this.enemies.filter(e => e.deadAt <= 0).length;
       if (this.queued > 0 && alive < getTuning().zombieCap) {
@@ -684,6 +691,7 @@ class ZombieEngine {
     this.audio.dispose();
     this.supplies.dispose();
     this.warzone.dispose();
+    this.rainFx.dispose();
     this.avatar?.dispose();
     this.scenery.forEach(root=>{root.traverse(o=>{if(o instanceof THREE.SkinnedMesh)o.skeleton.dispose();});root.removeFromParent();});
     this.sources.forEach(m=>release(m.scene));
@@ -856,6 +864,6 @@ export default function ZombieGame() {
         </div>
       </div>}
     </div>
-    {debugOpen && <DebugPanel orientation={orientation} haptics={haptics} onTestAudio={event=>engine.current?.previewAudio(event)} onClose={() => { engine.current?.setDeveloperPanelOpen(false);setDebugOpen(false); }} />}
+    {debugOpen && <DebugPanel orientation={orientation} haptics={haptics} onTestAudio={event=>engine.current?.previewAudio(event)} onCollapseChange={collapsed=>engine.current?.setDeveloperPanelOpen(!collapsed)} onClose={() => { engine.current?.setDeveloperPanelOpen(false);setDebugOpen(false); }} />}
   </div>;
 }

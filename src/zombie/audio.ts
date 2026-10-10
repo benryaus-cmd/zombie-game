@@ -160,7 +160,7 @@ export class ZombieAudio {
   if(category==='ambient'&&this.paused)return;
    if(category==='ambient'&&pos){
      const distance=pos.distanceTo(this.listenerPosition);
-     if(distance>(event==='firePop'?26:event==='warShot'?150:180))return;
+     if(distance>(event==='firePop'?26:event==='warShot'?260:180))return;
    }
    if(category==='zombie'){
    const distance=pos?.distanceTo(this.listenerPosition)||0;
@@ -188,7 +188,7 @@ export class ZombieAudio {
    if((category==='zombie'||category==='ambient')&&pos){
     const pan=ctx.createPanner();pan.panningModel='HRTF';pan.distanceModel='inverse';
     pan.refDistance=event==='firePop'?4:event==='warShot'?24:event==='warBoom'?30:Math.max(1,t.zombieRefDistance);
-    pan.maxDistance=event==='firePop'?26:event==='warShot'?150:event==='warBoom'?180:t.zombieAudibleDistance;
+    pan.maxDistance=event==='firePop'?26:event==='warShot'?260:event==='warBoom'?180:t.zombieAudibleDistance;
     pan.rolloffFactor=event==='firePop'?1.4:event==='warShot'?.35:event==='warBoom'?.5:t.zombieRolloff;
     pan.positionX.value=pos.x;pan.positionY.value=pos.y;pan.positionZ.value=pos.z;
     gain.connect(pan);pan.connect(category==='ambient'?this.ambientBus!:this.zombieBus!);

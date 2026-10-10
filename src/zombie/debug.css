@@ -31,3 +31,18 @@ font:10px/1.3 monospace; padding:8px; user-select:text; touch-action:pan-y; resi
 
 .dc-sound-preview { display:flex; flex-wrap:wrap;gap:5px;margin:7px 0 10px; }
 .dc-sound-preview button {font-size:9px;padding:7px 8px;flex:1 1 auto;}
+
+/* Temporary floating live workbench. Fully removable with DebugPanel/DebugFPS imports. */
+.dc-debug-panel {
+ right:auto!important;bottom:auto!important;position:absolute!important;
+ width:min(94cqw,470px);max-height:min(83cqh,720px);
+ z-index:9999!important;touch-action:auto;
+}
+.dc-debug-head {cursor:grab;user-select:none;touch-action:none;padding:6px 8px;}
+.dc-debug-head:active {cursor:grabbing;}
+.dc-debug-head strong {font-size:10px;white-space:nowrap;}
+.dc-debug-head output {color:#b0ffb1;background:#102d1b;padding:4px 6px;border:1px solid #55855b;border-radius:4px;
+ font:800 11px monospace;white-space:nowrap;}
+.dc-debug-head button {font-size:9px;min-width:28px;padding:5px!important;white-space:nowrap;}
+.dc-debug-collapsed {width:max-content;max-width:min(96cqw,360px);max-height:50px;}
+.dc-debug-collapsed .dc-debug-head {border:0;gap:5px;}

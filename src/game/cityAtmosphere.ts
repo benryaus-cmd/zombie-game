@@ -21,37 +21,51 @@ export class CityAtmosphere {
   private bulbSites:THREE.Vector3[]=[];private bulbBases:number[]=[];
   private poolSites:THREE.Vector3[]=[];private poolBases:number[]=[];
   private flickerAt=-1;
-  private static flicker(x:number,z:number,time:number,strength:number){
-    if(strength<=0)return 1;
-    const seed=Math.abs(Math.sin(x*12.9898+z*78.233));
-    if(seed>Math.min(.68,strength*.28))return 1;
-    const fail=Math.sin(time*.41+seed*37)> .94;
-    const strobe=Math.sin(time*(8+seed*19)+seed*21)>.63;
-    return fail?.08:strobe?.22:1;
+  private flickerConfig={
+    strength:0,idle:.02,rate:1.5,chance:.45,duration:.2,peak:1.5,onRange:1,colour:0
+  };
+  private lampSettings=getRenderSettings();
+  private static hash(n:number){return (Math.sin(n*12.9898+78.233)*43758.5453%1+1)%1;}
+  private static flicker(x:number,z:number,time:number,config:typeof CityAtmosphere.prototype.flickerConfig){
+    if(config.strength<=0)return config.idle;
+    const seed=CityAtmosphere.hash(x*4.3+z*9.7);
+    // The same lamp stays OFF until a probabilistic on-cycle; each lamp independent.
+    const epoch=time*Math.max(.1,config.rate)+seed*19;
+    const interval=Math.floor(epoch),within=epoch-interval;
+    const selected=CityAtmosphere.hash(interval*23.7+seed*37.1) <
+      config.chance*Math.min(1,config.strength/2);
+    if(!selected||within>config.duration)return config.idle;
+    // Brief lamp sputter gives a bright pool and actual dynamic light on the player.
+    const flickering=Math.sin(within*69+seed*7)>.5?.65:1;
+    return config.peak*flickering;
   }
-  private updateFlicker(time:number,strength:number){
-    if(time-this.flickerAt<.09 && strength>0)return;
+  private updateFlicker(time:number,settings:Partial<typeof this.flickerConfig>|number){
+    if(typeof settings==='number')settings={strength:settings};
+    this.flickerConfig={...this.flickerConfig,...settings};
+    if(time-this.flickerAt<.06)return;
     this.flickerAt=time;
-    const bulbs=this.bulbs.geometry.getAttribute('lampFade') as THREE.InstancedBufferAttribute;
+    const config=this.flickerConfig,bulbs=this.bulbs.geometry.getAttribute('lampFade') as THREE.InstancedBufferAttribute;
     const pools=this.pools.geometry.getAttribute('lampFade') as THREE.InstancedBufferAttribute;
     for(let i=0;i<this.bulbSites.length;i++){
       const p=this.bulbSites[i];
-      bulbs.setX(i,this.bulbBases[i]*CityAtmosphere.flicker(p.x,p.z,time,strength));
+      bulbs.setX(i,this.bulbBases[i]*CityAtmosphere.flicker(p.x,p.z,time,config));
     }
     for(let i=0;i<this.poolSites.length;i++){
       const p=this.poolSites[i];
-      pools.setX(i,this.poolBases[i]*CityAtmosphere.flicker(p.x,p.z,time,strength));
+      pools.setX(i,this.poolBases[i]*CityAtmosphere.flicker(p.x,p.z,time,config));
     }
     bulbs.needsUpdate=true;pools.needsUpdate=true;
     for(const light of this.lights){
       const base=(light.userData.deadCityBaseIntensity as number|undefined)??0;
-      light.intensity=base*CityAtmosphere.flicker(light.position.x,light.position.z,time,strength);
+      light.intensity=base*CityAtmosphere.flicker(light.position.x,light.position.z,time,config);
+      light.distance=this.lampSettings.lampDistance*config.onRange;
+      light.color.setRGB(1,.73+.20*config.colour,.46+.4*config.colour);
     }
   }
   readonly stats={lamps:0,realLights:0,groundReach:0};
   constructor(private scene:THREE.Scene,private layout?:readonly [number,number][]){
     this.root.name='city-atmosphere';scene.add(this.root);scene.userData.cityAtmosphereStats=this.stats;
-    scene.userData.deadCityFlickerTick=(seconds:number,strength:number)=>this.updateFlicker(seconds,strength);
+    scene.userData.deadCityFlickerTick=(seconds:number,config:unknown)=>this.updateFlicker(seconds,config as Partial<typeof this.flickerConfig>);
     this.ground=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshStandardMaterial({color:'#8b8982',roughness:1}));
     this.ground.name='city-ground-extension';this.ground.rotation.x=-Math.PI/2;this.ground.position.y=-.055;this.ground.frustumCulled=false;this.root.add(this.ground);
     this.poles=new THREE.InstancedMesh(new THREE.CylinderGeometry(.11,.16,5.4,5),new THREE.MeshStandardMaterial({color:'#77796e',roughness:1}),128);
@@ -67,6 +81,7 @@ export class CityAtmosphere {
     for(const light of [...this.lights,this.playerLight]){light.castShadow=false;scene.add(light);}
   }
   update(x:number,z:number,anchors:{position:THREE.Vector3;bulbMaterial:THREE.MeshStandardMaterial}[],settings=getRenderSettings(),now=performance.now(),playerY=1.7,camera?:THREE.Camera){
+    this.lampSettings=settings;
     const cx=Math.floor(x/48+.5),cz=Math.floor(z/48+.5);
     const signature=`${cx}:${cz}:${settings.groundChunks}:${settings.detailDistance}:${settings.fogDensity}:${settings.fogStyle}:${settings.fogFar}:${settings.fogCull}:${settings.streetLights}:${settings.lampRadius}:${settings.lampActivationDistance}:${settings.lampFadeDistance}:${anchors.length}:${settings.heightLod}:${settings.shortDetailDistance}:${settings.tallDetailDistance}`;
     const changed=signature!==this.signature;
@@ -116,9 +131,14 @@ export class CityAtmosphere {
       light.userData.deadCityBaseIntensity=light.intensity;
       if(light.visible)light.position.copy(p);if(light.visible&&light.intensity)real++;
     });
-    this.playerLight.visible=settings.playerLight;this.playerLight.intensity=settings.playerLightIntensity;this.playerLight.position.set(x,playerY+.5,z);
+    // Dead City's following player light produced a rolling hotspot during movement.
+    // Nearby flickering STREET lamps now provide actual light on the survivor.
+    const noFollow=Boolean(this.scene.userData.deadCityNoFollowerLight);
+    this.playerLight.visible=settings.playerLight&&!noFollow;
+    this.playerLight.intensity=this.playerLight.visible?settings.playerLightIntensity:0;
+    this.playerLight.position.set(x,playerY+.5,z);
     this.stats.lamps=positions.length;this.stats.realLights=real+Number(settings.playerLight);
-    this.updateFlicker(now/1000,(this.scene.userData.deadCityFlickerStrength as number|undefined)??0);
+    this.updateFlicker(now/1000,this.flickerConfig);
   }
   dispose(){this.root.traverse(object=>{if(!(object instanceof THREE.Mesh))return;if(object instanceof THREE.InstancedMesh)object.dispose();object.geometry.dispose();const materials=Array.isArray(object.material)?object.material:[object.material];materials.forEach(material=>material.dispose());});this.root.removeFromParent();for(const light of [...this.lights,this.playerLight])light.removeFromParent();delete this.scene.userData.cityAtmosphereStats;delete this.scene.userData.deadCityFlickerTick;}
 }
