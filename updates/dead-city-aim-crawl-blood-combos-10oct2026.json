@@ -2,10 +2,10 @@
   "version": "dead-city-aim-crawl-blood-combos-10oct2026",
   "type": "incremental",
   "repository": "benryaus-cmd/zombie-game",
-  "commit": "19db8ecd58f178d12439c409f0776d386b8fe145",
-  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/19db8ecd58f178d12439c409f0776d386b8fe145/",
+  "commit": "4dc226307d8f8854065c41ceaf65b2b86a8563ac",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/4dc226307d8f8854065c41ceaf65b2b86a8563ac/",
   "fileCount": 9,
-  "description": "Dead City: tracer muzzle streaks converge on camera ray when cameraHeight changes; authored crawl animation grounded by animated hands; spurting blood on severed arm/leg joints with dark red, rare black and green droplets; three local CC0 combo callout cues; adopted owner-tested tuning defaults. Source audio listener was already attached to player position, so no fictitious listener change.",
+  "description": "Dead City: tracer muzzle streaks converge on camera ray when cameraHeight changes; authored crawl animation grounded by animated hands; spurting blood on severed arm/leg joints with dark red, rare black and green droplets; three local CC0 combo callout cues; adopted owner-tested tuning defaults. Source audio listener was already attached to player position, so no fictitious listener change. Dismembered corpses also emit short lived stump blood spurts until cleanup.",
   "files": [
     {
       "source": "src/zombie/ZombieGame.tsx",
