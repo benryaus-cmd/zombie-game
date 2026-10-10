@@ -22,6 +22,10 @@ const URLS: Record<string,string> = {
   'zombie-10.wav': new URL('../../public/audio/sfx/zombie-10.wav', import.meta.url).href,
   'zombie-11.wav': new URL('../../public/audio/sfx/zombie-11.wav', import.meta.url).href,
   'zombie-12.wav': new URL('../../public/audio/sfx/zombie-12.wav', import.meta.url).href,
+  'war-stinger-0.ogg': new URL('../../public/audio/sfx/war-stinger-0.ogg', import.meta.url).href,
+  'war-stinger-1.ogg': new URL('../../public/audio/sfx/war-stinger-1.ogg', import.meta.url).href,
+  'war-stinger-2.ogg': new URL('../../public/audio/sfx/war-stinger-2.ogg', import.meta.url).href,
+  'war-explosion.wav': new URL('../../public/audio/sfx/war-explosion.wav', import.meta.url).href,
   'combo-hit.ogg': new URL('../../public/audio/sfx/combo-hit.ogg', import.meta.url).href,
   'combo-up.ogg': new URL('../../public/audio/sfx/combo-up.ogg', import.meta.url).href,
   'combo-big.ogg': new URL('../../public/audio/sfx/combo-big.ogg', import.meta.url).href,
@@ -32,7 +36,7 @@ const URLS: Record<string,string> = {
   'bullet-impact-0.ogg': new URL('../../public/audio/sfx/bullet-impact-0.ogg', import.meta.url).href,
   'bullet-impact-1.ogg': new URL('../../public/audio/sfx/bullet-impact-1.ogg', import.meta.url).href,
 };
-export type SfxEvent = 'pistol'|'rifle'|'shotgun'|'idle'|'alert'|'attack'|'hurt'|'death'|'critical'|'crawl'|'reload'|'reloadRifle'|'reloadShotgun'|'empty'|'impact'|'comboHit'|'comboUp'|'comboBig';
+export type SfxEvent = 'pistol'|'rifle'|'shotgun'|'idle'|'alert'|'attack'|'hurt'|'death'|'critical'|'crawl'|'reload'|'reloadRifle'|'reloadShotgun'|'empty'|'impact'|'comboHit'|'comboUp'|'comboBig'|'warShot'|'warBoom';
 const CLIPS: Record<SfxEvent,string[]> = {
  pistol:['pistol-0.wav','pistol-1.wav','pistol-2.wav'],
  rifle:['rifle-0.wav','rifle-1.wav','rifle-2.wav'],
@@ -49,15 +53,19 @@ const CLIPS: Record<SfxEvent,string[]> = {
  reloadShotgun:['reload-shotgun.ogg'],
  empty:['empty-click.ogg'],
  impact:['bullet-impact-0.ogg','bullet-impact-1.ogg'],
- comboHit:['combo-hit.ogg'],comboUp:['combo-up.ogg'],comboBig:['combo-big.ogg'],
+ comboHit:['war-stinger-0.ogg'],comboUp:['war-stinger-1.ogg'],comboBig:['war-stinger-2.ogg'],
+ warShot:['rifle-0.wav','rifle-1.wav','rifle-2.wav'],warBoom:['war-explosion.wav'],
 };
-type Playback = {category:'weapon'|'zombie'|'ui';started:number};
+type Playback = {category:'weapon'|'zombie'|'ui'|'ambient';started:number};
 export class ZombieAudio {
  private context: AudioContext | null = null;
  private master: GainNode | null = null;
  private weaponBus: GainNode | null = null;
  private zombieBus: GainNode | null = null;
  private uiBus: GainNode | null = null;
+ private ambientBus: GainNode | null = null;
+ private windSource: AudioBufferSourceNode | null=null;
+ private windGain: GainNode | null=null;
  private readonly cache=new Map<string,AudioBuffer>();
  private readonly pending=new Set<string>();
  private readonly playing=new Set<Playback>();
@@ -78,6 +86,16 @@ export class ZombieAudio {
     this.weaponBus=context.createGain();this.weaponBus.connect(this.master);
     this.zombieBus=context.createGain();this.zombieBus.connect(this.master);
     this.uiBus=context.createGain();this.uiBus.connect(this.master);
+    this.ambientBus=context.createGain();this.ambientBus.connect(this.master);
+    // Filtered 2s procedural wind loop: no extra download, one reusable node.
+    const windBuffer=context.createBuffer(1,Math.ceil(context.sampleRate*2),context.sampleRate);
+    const channel=windBuffer.getChannelData(0);
+    for(let i=0;i<channel.length;i++)channel[i]=Math.random()*2-1;
+    const lowpass=context.createBiquadFilter();lowpass.type='lowpass';lowpass.frequency.value=220;
+    this.windGain=context.createGain();this.windGain.gain.value=0;
+    const source=context.createBufferSource();source.buffer=windBuffer;source.loop=true;
+    source.connect(lowpass);lowpass.connect(this.windGain);this.windGain.connect(this.ambientBus);source.start();
+    this.windSource=source;
     this.update();
    } catch(e){console.warn('Dead City: audio unavailable',e);return;}
   }
@@ -115,6 +133,8 @@ export class ZombieAudio {
   if(this.weaponBus)this.weaponBus.gain.value=t.weaponVolume;
   if(this.zombieBus)this.zombieBus.gain.value=t.zombieVolume;
   if(this.uiBus)this.uiBus.gain.value=t.uiVolume;
+  if(this.ambientBus)this.ambientBus.gain.value=t.warAmbienceVolume;
+  if(this.windGain)this.windGain.gain.value=t.warWindVolume*.035;
   const l=ctx.listener,p=this.listenerPosition,f=forward||new THREE.Vector3(0,0,-1);
   if(l.positionX){l.positionX.value=p.x;l.positionY.value=p.y;l.positionZ.value=p.z;}
   else if(l.setPosition)l.setPosition(p.x,p.y,p.z);
@@ -123,10 +143,13 @@ export class ZombieAudio {
  }
  play(event:SfxEvent,pos?:THREE.Vector3,gateKey?:string) {
   const ctx=this.context;if(this.disposed||!ctx||ctx.state!=='running')return;
-  const t=getTuning(), category=event==='pistol'||event==='rifle'||event==='shotgun'?'weapon':(event==='reload'||event==='reloadRifle'||event==='reloadShotgun'||event==='empty'||event.startsWith('combo'))?'ui':'zombie';
+  const t=getTuning();
+  const category:Playback['category'] = event==='warShot'||event==='warBoom'?'ambient':
+    event==='pistol'||event==='rifle'||event==='shotgun'?'weapon':
+    event==='reload'||event==='reloadRifle'||event==='reloadShotgun'||event==='empty'||event.startsWith('combo')?'ui':'zombie';
   const now=ctx.currentTime;
   const key=gateKey||event;
-  const minGap=category==='zombie'?t.zombieMinGap:event==='empty'?.11:event.startsWith('combo')?.55:0;
+  const minGap=category==='zombie'?t.zombieMinGap:event==='empty'?.11:event==='warShot'?.09:event==='warBoom'?3:event.startsWith('combo')?.55:0;
   if(now-(this.cooldowns.get(key)||-100)<minGap)return;
   if(category==='zombie'){
    const distance=pos?.distanceTo(this.listenerPosition)||0;
@@ -143,19 +166,20 @@ export class ZombieAudio {
   if(!buffer){void this.load(candidate);return;}
   try{
    const source=ctx.createBufferSource();source.buffer=buffer;
-   source.playbackRate.value=1+(Math.random()-.5)*2*(category==='zombie'?t.zombiePitchVariation:t.gunPitchVariation);
+   source.playbackRate.value=(event==='warShot'?.68:event==='warBoom'?.84:1)+(Math.random()-.5)*2*(category==='zombie'?t.zombiePitchVariation:category==='ambient'?.045:t.gunPitchVariation);
    const gain=ctx.createGain();
-   gain.gain.value=category==='zombie'?.7:event.startsWith('combo')?t.comboVolume:1;
+   gain.gain.value=category==='zombie'?.7:event==='warShot'?.14:event==='warBoom'?.32:event.startsWith('combo')?t.comboVolume:1;
    source.connect(gain);
-   if(category==='zombie'&&pos){
+   if((category==='zombie'||category==='ambient')&&pos){
     const pan=ctx.createPanner();pan.panningModel='HRTF';pan.distanceModel='inverse';
-    pan.refDistance=Math.max(1,t.zombieRefDistance);pan.maxDistance=t.zombieAudibleDistance;
-    pan.rolloffFactor=t.zombieRolloff;
+    pan.refDistance=category==='ambient'?16:Math.max(1,t.zombieRefDistance);
+    pan.maxDistance=category==='ambient'?120:t.zombieAudibleDistance;
+    pan.rolloffFactor=category==='ambient'?.7:t.zombieRolloff;
     pan.positionX.value=pos.x;pan.positionY.value=pos.y;pan.positionZ.value=pos.z;
-    gain.connect(pan);pan.connect(this.zombieBus!);
+    gain.connect(pan);pan.connect(category==='ambient'?this.ambientBus!:this.zombieBus!);
     source.onended=()=>{this.playing.delete(token);source.disconnect();gain.disconnect();pan.disconnect()};
    }else{
-    gain.connect(category==='weapon'?this.weaponBus!:category==='ui'?this.uiBus!:this.zombieBus!);
+    gain.connect(category==='weapon'?this.weaponBus!:category==='ui'?this.uiBus!:category==='ambient'?this.ambientBus!:this.zombieBus!);
     source.onended=()=>{this.playing.delete(token);source.disconnect();gain.disconnect()};
    }
    const token:Playback={category,started:now};this.playing.add(token);
@@ -165,6 +189,8 @@ export class ZombieAudio {
  }
  dispose() {
   this.disposed=true;this.cache.clear();this.pending.clear();this.playing.clear();
-  this.cooldowns.clear();void this.context?.close().catch(()=>undefined);this.context=null;
+  this.cooldowns.clear();try{this.windSource?.stop();}catch{/* already stopped */}
+  this.windSource?.disconnect();this.windGain?.disconnect();this.windSource=null;this.windGain=null;
+  void this.context?.close().catch(()=>undefined);this.context=null;
  }
 }

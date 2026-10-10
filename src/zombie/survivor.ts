@@ -18,8 +18,27 @@ export class ArmedSurvivor {
  private reloadElapsed=0;
  private flashAge=0;
  private torso:THREE.Object3D|undefined;
+ private readonly localMats:THREE.Material[]=[];
  constructor(model:Model,avatar:THREE.Group) {
   this.root=clone(model.scene) as THREE.Group;this.root.name='armed-survivor';
+  // The authored skin can pick up a moving white specular streak under streetlights.
+  // Clone only this survivor's lit materials: zombies/world retain their own finish.
+  const cloned=new Map<THREE.Material,THREE.Material>();
+  this.root.traverse(object=>{
+    if(!(object instanceof THREE.Mesh))return;
+    const matte=(mat:THREE.Material)=>{
+      if(!(mat instanceof THREE.MeshStandardMaterial))return mat;
+      let local=cloned.get(mat);
+      if(!local){
+        const copy=mat.clone();copy.roughness=.97;copy.metalness=0;
+        if(copy instanceof THREE.MeshPhysicalMaterial)copy.clearcoat=0;
+        local=copy;cloned.set(mat,local);this.localMats.push(local);
+      }
+      return local;
+    };
+    if(Array.isArray(object.material))object.material=object.material.map(matte);
+    else object.material=matte(object.material);
+  });
   // The authored trigger socket is Middle1.L. Mirror the complete rig so it is
   // right-handed, keeping its existing grip, skin and gun animation together.
   const body=this.root.getObjectByName('Matt')!;this.root.updateMatrixWorld(true);
@@ -102,5 +121,5 @@ export class ArmedSurvivor {
   };
   point(upper,lower,elbow);point(lower,hand,target);
  }
- dispose() {this.mixer.stopAllAction();this.mixer.uncacheRoot(this.root);this.flash.geometry.dispose();(this.flash.material as THREE.Material).dispose();this.root.traverse(o=>{if(o instanceof THREE.SkinnedMesh)o.skeleton.dispose();});this.root.removeFromParent();}
+ dispose() {this.mixer.stopAllAction();this.mixer.uncacheRoot(this.root);this.flash.geometry.dispose();(this.flash.material as THREE.Material).dispose();this.localMats.forEach(m=>m.dispose());this.root.traverse(o=>{if(o instanceof THREE.SkinnedMesh)o.skeleton.dispose();});this.root.removeFromParent();}
 }

@@ -17,7 +17,9 @@ import { shareSkeletons, bodySpheres, detachRegion, updateDebris, disposeDebris,
 import { ZombieAudio } from './audio';
 import { BloodEffects } from './bloodEffects';
 import { ShotTrails, tracerToReticle } from './shotTrails';
-import { routeStreet, nearbyBuildings, stepSeparated } from './navigation';
+import { routeStreet, nearbyBuildings, stepSeparated, reachableSpawnArea } from './navigation';
+import { isInsideBuilding } from '@/game/morningQuarterLayout';
+import { WarzoneAtmosphere } from './WarzoneAtmosphere';
 import type { Collider } from './combat';
 import { SupplyDrops, type PickupType } from './Pickups';
 import Radar, { type RadarFrame } from './Radar';
@@ -104,6 +106,8 @@ class ZombieEngine {
   private audio = new ZombieAudio();
   private routeBudget=2;
   private supplies: SupplyDrops;
+  private warzone: WarzoneAtmosphere;
+  private lastHitVibrate = -100;
   private pickupMessage = '';
   private pickupUntil = 0;
   private scoreState:ScoreState=newScore();
@@ -164,6 +168,7 @@ class ZombieEngine {
     applySkyLighting(this.world, 'night');
     this.world.updateChunks(this.world.playerPosition.x, this.world.playerPosition.z);
     this.supplies = new SupplyDrops(this.world, (kind,amount)=>this.giveSupply(kind,amount));
+    this.warzone = new WarzoneAtmosphere(this.world,(event,pos)=>this.audio.play(event,pos));
     // The inherited worldMovement calls the expensive chunk/LOD updater each
     // animation frame, including while jumping. Keep streaming responsive
     // without rebuilding geometry/LOD every airborne frame.
@@ -388,11 +393,19 @@ class ZombieEngine {
   }
   private spawn() {
     const px = this.world.playerPosition.x, pz = this.world.playerPosition.z;
+    // Restrict zombies to walkable positions connected to the player;
+    // walls and building courtyards must never trap the last zombie.
+    const reachable=reachableSpawnArea({x:px,z:pz},this.world.colliders,32);
     let x = 0, z = 0, found = false;
     for (let i = 0; i < 40; i++) {
       const a = Math.random() * Math.PI * 2, radius = 15 + Math.random() * 12;
       const sx = px + Math.cos(a) * radius, sz = pz + Math.sin(a) * radius;
-      if (!blocked(this.world, sx, sz, .7) && this.enemies.every(other=>other.deadAt>0||Math.hypot(other.x-sx,other.z-sz)>getTuning().zombieSpacing+1)) { x = sx; z = sz; found = true; break; }
+      if (!isInsideBuilding(sx,sz,.8) &&
+          !blocked(this.world,sx,sz,.7) &&
+          reachable({x:sx,z:sz}) &&
+          this.enemies.every(other=>other.deadAt>0||Math.hypot(other.x-sx,other.z-sz)>getTuning().zombieSpacing+1)) {
+        x=sx;z=sz;found=true;break;
+      }
     }
     if (!found) return;
     const model = this.variants[this.wave >= 2 && Math.random() < .25 ? 1 : 0] ?? this.model;
@@ -493,6 +506,14 @@ class ZombieEngine {
       enemy.hitAt = now;
       this.audio.play('attack',new THREE.Vector3(enemy.x,enemy.root.position.y+.8,enemy.z),'attack-'+enemy.root.id);
       if (this.developerPanelOpen && t.safeWhileTuning >= .5) return true;
+      if(this.hapticsEnabled && t.attackDamage>0 && now-this.lastHitVibrate>=t.hitHapticCooldown) {
+        this.lastHitVibrate=now;
+        if(typeof navigator!=='undefined'&&typeof navigator.vibrate==='function') {
+          try{
+            navigator.vibrate([Math.round(t.hitHapticFirst),Math.round(t.hitHapticPause),Math.round(t.hitHapticSecond)]);
+          }catch{/* The Aippy WebView may disable vibration. */}
+        }
+      }
       this.health = Math.max(0, this.health - t.attackDamage);
       this.hurtUntil = now + .52;
       this.cameraKick = Math.max(this.cameraKick, .17);
@@ -555,6 +576,7 @@ class ZombieEngine {
       this.trails.update(dt);
       this.audio.update(this.world.playerPosition,this.world.camera.getWorldDirection(new THREE.Vector3()));
       this.supplies.update(dt);
+      this.warzone.update(dt,this.world.playerPosition);
       this.enemies = this.enemies.filter(e => this.updateEnemy(e, dt, now));
       const alive = this.enemies.filter(e => e.deadAt <= 0).length;
       if (this.queued > 0 && alive < getTuning().zombieCap) {
@@ -613,6 +635,7 @@ class ZombieEngine {
     this.reloadTimer = 0; this.weapon = 'pistol'; this.notice = 'SURVIVE THE WAVES';
     this.world.playerPosition.set(0, 1.72, 5);
     this.supplies.clear();
+    this.warzone.reset();this.lastHitVibrate=-100;
     this.world.velocityY = 0;
     this.equip('pistol');
     this.emitHud();
@@ -639,6 +662,7 @@ class ZombieEngine {
     this.trails.dispose();
     this.audio.dispose();
     this.supplies.dispose();
+    this.warzone.dispose();
     this.avatar?.dispose();
     this.scenery.forEach(root=>{root.traverse(o=>{if(o instanceof THREE.SkinnedMesh)o.skeleton.dispose();});root.removeFromParent();});
     this.sources.forEach(m=>release(m.scene));
@@ -760,7 +784,7 @@ export default function ZombieGame() {
       onPointerCancel={event => releaseGesture(event, true)}
       onLostPointerCapture={event => releaseGesture(event, true)}
     />
-    <DebugFPS />
+    <div style={{display:'none'}} aria-hidden="true"><DebugFPS /></div>
     <div className="zombie-hud">
       {started && !hud.over && <Radar read={readRadar} />}
       <MetalRadio radio={radio} onOpen={openRadio} onClose={closeRadio} />

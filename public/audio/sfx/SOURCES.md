@@ -54,3 +54,22 @@ https://github.com/Mcamento8/open-game-sfx-index/blob/main/ATTRIBUTION.md
 
 These cues play only when a multi-kill pop-up occurs. They use the `comboVolume`
 setting and have their own cooldown to avoid cluttering automatic gunfire.
+
+## Dead City warzone audio and heavy multiplier awards (10 October 2026)
+
+CC0 recordings redistributed as static local game assets from the indexed
+public-domain audio collection:
+https://github.com/Mcamento8/open-game-sfx-index
+License evidence: https://github.com/Mcamento8/open-game-sfx-index/blob/main/ATTRIBUTION.md
+
+- `war-stinger-0.ogg` = `audio/impact-sounds/impactMetal_heavy_000.ogg`, Kenney CC0.
+- `war-stinger-1.ogg` = `audio/impact-sounds/impactMetal_heavy_002.ogg`, Kenney CC0.
+- `war-stinger-2.ogg` = `audio/impact-sounds/impactMetal_heavy_004.ogg`, Kenney CC0.
+- `war-explosion.wav` = `audio/oga-512-retro/The Essential Retro Video Game Sound Effects Collection [512 sounds] By Juhani Junkala/Explosions/Medium Length/sfx_exp_medium4.wav`, Juhani Junkala, CC0.
+
+The warzone fires and low-frequency ambient wind are procedurally produced by Three.js
+and Web Audio, with no third-party assets. Far-off shooting reuses the game's existing
+locally stored rifle samples, lowered in pitch and mixed quietly, instead of new downloads.
+
+The new impact sounds replace the *playback mapping* for cheerful combo stingers.
+Original combo files remain on disk for rollback and are not requested for the new stingers.

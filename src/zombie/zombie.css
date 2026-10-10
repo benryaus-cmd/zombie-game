@@ -187,72 +187,66 @@
 }
 
 
-/* 10 Oct compact gameplay HUD. Override only the in-game HUD, not the start/menu title. */
+
+/* Single authoritative compact HUD layout. No second-row health bar. */
 .zombie-top {
- display:grid; grid-template-columns:minmax(95px,1fr) auto auto 40px;
- column-gap:8px; row-gap:5px; align-items:center;
- min-height:0; padding:36px 10px 9px;
- background:linear-gradient(#07121bd9,#07121b68 75%,transparent);
+ display:grid;grid-template-columns:minmax(94px,1fr) auto auto 41px;
+ grid-template-areas:"hp wave score menu" ". . kills kills";
+ gap:2px 7px;align-items:center;
+ padding:7px 10px 6px;min-height:0;
+ background:linear-gradient(#07141cd9,#07141b5c 75%,transparent);
 }
-.zombie-health { grid-column:1 / 3; grid-row:2; width:min(190px,46cqw); min-width:0; align-self:center; }
-.zombie-health span { font-size:10px; font-weight:800; letter-spacing:.02em; }
-.zombie-health div { height:6px; margin-top:3px; border-radius:3px; }
-.zombie-wave { grid-column:2; grid-row:1; margin:0; }
-.zombie-wave strong { font-size:15px; }
-.zombie-score { grid-column:3; grid-row:1; align-self:center; }
-.zombie-score strong { font-size:14px; }
-.zombie-kills { grid-column:3 / 5; grid-row:2; justify-self:end; font-size:10px; }
-.zombie-kills strong { font-size:15px; }
-.zombie-menu-button { grid-column:4; grid-row:1; padding:8px !important; font-size:15px; }
-.dc-radar {
- left:max(10px,env(safe-area-inset-left)); top:126px;
- width:105px; height:105px; z-index:16;
-}
-.zombie-hud .dc-radio-mini {
- left:125px; top:147px; min-width:0; max-width:102px;
- padding:8px 9px; border-radius:9px; font-size:10px;
- letter-spacing:0; white-space:nowrap; z-index:18;
-}
-.zombie-ammo .zombie-weapon-cycle {
- min-width:96px; min-height:65px;
- padding:7px 9px; gap:2px;
- border-radius:11px; text-align:left;
-}
-.zombie-weapon-cycle strong { font-size:12px; white-space:nowrap; }
-.zombie-weapon-cycle span { font-size:17px; line-height:1.08; }
-.zombie-ammo .zombie-reload { min-width:63px; min-height:36px; padding:7px 8px; font-size:9px; }
+.zombie-health {grid-area:hp;min-width:0;width:min(165px,100%);align-self:center;white-space:nowrap;}
+.zombie-health span {font-size:10px;font-weight:800;}
+.zombie-health div {height:5px;margin-top:3px;border-radius:3px;}
+.zombie-wave {grid-area:wave;margin:0;align-self:center;justify-self:end;white-space:nowrap;}
+.zombie-wave strong {font-size:14px;}
+.zombie-wave small {font-size:8px;}
+.zombie-score {grid-area:score;justify-self:end;align-self:center;font-size:8px;text-align:right;}
+.zombie-score strong {font-size:13px;}
+.zombie-kills {grid-area:kills;align-self:center;justify-self:end;font-size:10px;}
+.zombie-kills strong {font-size:12px;}
+.zombie-menu-button {grid-area:menu;min-height:35px;padding:6px !important;font-size:15px;}
+/* Radar is now below the compact 2-row header and no longer below FPS. */
+.dc-radar {top:76px;left:max(10px,env(safe-area-inset-left));width:101px;height:101px;
+ border-radius:50%;z-index:16;pointer-events:none;}
+.zombie-hud .dc-radio-mini {top:92px;left:max(120px,env(safe-area-inset-left));
+ max-width:102px;min-width:0;padding:8px 8px;font-size:10px;letter-spacing:0;white-space:nowrap;z-index:18;}
+.zombie-ammo .zombie-weapon-cycle {min-width:96px;min-height:64px;padding:7px 9px;gap:2px;border-radius:11px;}
+.zombie-weapon-cycle strong {font-size:12px;white-space:nowrap;}
+.zombie-weapon-cycle span {font-size:17px;line-height:1.08;}
+.zombie-ammo .zombie-reload {min-width:63px;min-height:36px;padding:7px 8px;font-size:9px;}
 @container game (max-aspect-ratio:1/1) {
- .zombie-top {
-   display:grid; grid-template-columns:minmax(95px,1fr) auto auto 40px;
-   column-gap:6px; row-gap:4px; padding:36px 11px 8px;
- }
- .zombie-health { grid-column:1 / 3; grid-row:2; width:min(190px,46cqw); }
- .zombie-wave { grid-column:2; grid-row:1; }
- .zombie-score { grid-column:3; grid-row:1; }
- .zombie-kills { grid-column:3 / 5; grid-row:2; justify-self:end; }
- .zombie-menu-button { grid-column:4; grid-row:1; }
- .dc-radar { top:131px; width:106px; height:106px; left:10px; }
- .zombie-hud .dc-radio-mini { top:149px; left:125px; max-width:106px; min-width:0; }
- .zombie-ammo .zombie-weapon-cycle { min-width:96px; min-height:64px; padding:7px 9px; }
- .zombie-jump { bottom:calc(max(20px,env(safe-area-inset-bottom)) + 116px); }
+ .zombie-top {display:grid;grid-template-columns:minmax(94px,1fr) auto auto 41px;
+  grid-template-areas:"hp wave score menu" ". . kills kills";gap:2px 6px;
+  padding:7px 10px 6px;min-height:0;}
+ .zombie-health {grid-area:hp;min-width:0;width:min(165px,100%);}
+ .zombie-wave {grid-area:wave;}
+ .zombie-score {grid-area:score;}
+ .zombie-kills {grid-area:kills;}
+ .zombie-menu-button {grid-area:menu;}
+ .dc-radar {top:76px;left:10px;width:101px;height:101px;}
+ .zombie-hud .dc-radio-mini {top:92px;left:120px;min-width:0;max-width:102px;}
+ .zombie-ammo .zombie-weapon-cycle {min-width:96px;min-height:64px;padding:7px 9px;}
 }
 @container game (max-width:360px) {
- .zombie-top { grid-template-columns:minmax(75px,1fr) auto auto 35px; column-gap:4px; padding:34px 8px 8px; }
- .zombie-wave strong { font-size:12px; }
- .zombie-wave small { font-size:8px; }
- .zombie-health { width:min(155px,44cqw); }
- .zombie-score strong { font-size:12px; }
- .zombie-kills strong { font-size:12px; }
- .zombie-ammo .zombie-weapon-cycle { min-width:89px; min-height:60px; padding:6px 7px; }
- .zombie-weapon-cycle strong { font-size:11px; }
- .zombie-weapon-cycle span { font-size:15px; }
+ .zombie-top {grid-template-columns:minmax(86px,1fr) auto auto 35px;gap:2px 3px;padding:5px 7px;}
+ .zombie-health {width:min(125px,100%);}
+ .zombie-wave strong {font-size:12px;}
+ .zombie-wave small,.zombie-score {font-size:7px;}
+ .zombie-score strong,.zombie-kills strong {font-size:11px;}
+ .dc-radar {width:88px;height:88px;top:70px;}
+ .zombie-hud .dc-radio-mini {top:85px;left:106px;max-width:89px;font-size:9px;}
+ .zombie-ammo .zombie-weapon-cycle {min-width:90px;min-height:60px;padding:6px 7px;}
+ .zombie-weapon-cycle strong {font-size:11px;}
+ .zombie-weapon-cycle span {font-size:15px;}
 }
-@container game (min-aspect-ratio: 1/1) {
- .zombie-top { padding-top:14px; }
- .dc-radar { top:86px; width:89px; height:89px; }
- .zombie-hud .dc-radio-mini { top:104px; left:108px; }
+@container game (min-aspect-ratio:1/1) {
+ .zombie-top {padding-top:5px;}
+ .dc-radar {top:62px;width:83px;height:83px;}
+ .zombie-hud .dc-radio-mini {top:79px;left:102px;}
 }
 @container game (max-height:480px) {
- .dc-radar { top:70px; width:77px; height:77px; }
- .zombie-hud .dc-radio-mini { top:90px; left:98px; }
+ .dc-radar {top:61px;width:74px;height:74px;}
+ .zombie-hud .dc-radio-mini {top:77px;left:92px;}
 }
