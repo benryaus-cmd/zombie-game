@@ -1,0 +1,31 @@
+{
+  "version": "dead-city-interactive-tutorial-10oct2026",
+  "type": "incremental",
+  "repository": "benryaus-cmd/zombie-game",
+  "commit": "82e075714329b376b82ba51c5e266d9e42813aec",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/82e075714329b376b82ba51c5e266d9e42813aec/",
+  "fileCount": 5,
+  "description": "Adds a HOW TO PLAY interactive in-world tutorial button on Dead City's existing main and pause menus. Starts a fresh playable training run with enemy waves held until tutorial is completed or skipped. Guides verified real movement, swipe aim, jump, double-tap-and-hold fire, weapon switching, reload, supply pickup, minimap/score/music and then starts normal survival waves. In-world compact guide with progress, back, next/skip-step and skip tutorial. Preserve existing gameplay, developer panel, Metal FM, portrait/landscape, world and HubSide portal. Node 22 manifest importer only.",
+  "files": [
+    {
+      "source": "src/zombie/ZombieGame.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/ZombieGame.tsx"
+    },
+    {
+      "source": "src/zombie/zombie.css",
+      "target": "src/games/importedGame/upstream/src/zombie/zombie.css"
+    },
+    {
+      "source": "src/zombie/tutorial.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/tutorial.ts"
+    },
+    {
+      "source": "src/zombie/TutorialOverlay.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/TutorialOverlay.tsx"
+    },
+    {
+      "source": "src/zombie/tutorial.css",
+      "target": "src/games/importedGame/upstream/src/zombie/tutorial.css"
+    }
+  ]
+}
