@@ -1,0 +1,43 @@
+{
+  "version": "dead-city-navigation-radio-supplies-radar-10oct2026",
+  "type": "incremental",
+  "repository": "benryaus-cmd/zombie-game",
+  "commit": "7a73d79d2bd0ee90c7bce15264a4dcf616377f2c",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/7a73d79d2bd0ee90c7bce15264a4dcf616377f2c/",
+  "fileCount": 8,
+  "description": "Dead City: better obstacle pathfinding and crowd separation for zombies, lower jump/scene-update overhead, FluxFM MetalFM radio (30% default) with pause-game controls, low rifle/shotgun starting ammo, randomized automatic supply pickups with pulsing nearest-pickup line, heading-up top-left minimap (zombies green, player and supplies yellow, buildings grey), extra tuning values. Preserve old world, portrait/landscape, weapons, audio, combat and Aippy host shell.",
+  "files": [
+    {
+      "source": "src/zombie/ZombieGame.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/ZombieGame.tsx"
+    },
+    {
+      "source": "src/zombie/navigation.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/navigation.ts"
+    },
+    {
+      "source": "src/zombie/Pickups.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/Pickups.ts"
+    },
+    {
+      "source": "src/zombie/Radar.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/Radar.tsx"
+    },
+    {
+      "source": "src/zombie/MetalRadio.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/MetalRadio.tsx"
+    },
+    {
+      "source": "src/zombie/zombie.css",
+      "target": "src/games/importedGame/upstream/src/zombie/zombie.css"
+    },
+    {
+      "source": "src/zombie/tuning.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/tuning.ts"
+    },
+    {
+      "source": "src/zombie/bloodEffects.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/bloodEffects.ts"
+    }
+  ]
+}
