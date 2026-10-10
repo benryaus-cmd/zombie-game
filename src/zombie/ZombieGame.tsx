@@ -252,9 +252,12 @@ class ZombieEngine {
   move = (input: MovementInput) => { this.controls.movement = input; };
   look = (input: LookInput) => { this.controls.lookInput = input; };
   setHaptics(enabled: boolean) { this.hapticsEnabled = enabled; }
-  previewAudio(event:'pistol'|'rifle'|'shotgun'|'idle'|'reload') {
+  previewAudio(event:'pistol'|'rifle'|'shotgun'|'idle'|'reload'|'warShot'|'warBoom'|'firePop') {
     this.audio.unlock();
-    this.audio.play(event,event==='idle'?this.world.playerPosition.clone().add(new THREE.Vector3(3,0,-2)):undefined,'preview-'+event);
+    const position=event==='idle'?this.world.playerPosition.clone().add(new THREE.Vector3(3,0,-2)):
+      event==='warShot'||event==='warBoom'?this.world.playerPosition.clone().add(new THREE.Vector3(0,5,-35)):
+      event==='firePop'?this.world.playerPosition.clone().add(new THREE.Vector3(2,0,-3)):undefined;
+    this.audio.play(event,position,'preview-'+event);
   }
   setDeveloperPanelOpen(open: boolean) { this.developerPanelOpen = open; }
   dragLook(dx: number, dy: number) {

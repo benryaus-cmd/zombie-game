@@ -3,7 +3,7 @@ import { TUNING, DEFAULT_TUNING, getTuning, setTuning, resetTuning, subscribeTun
 import './debug.css';
 
 /** Self-contained, temporary developer controls. Remove <DebugPanel /> and this file to remove the tool. */
-export default function DebugPanel({ onClose, orientation, haptics, onTestAudio }: { onClose: () => void; orientation: 'portrait'|'landscape'; haptics: boolean; onTestAudio: (event:'pistol'|'rifle'|'shotgun'|'idle'|'reload')=>void }) {
+export default function DebugPanel({ onClose, orientation, haptics, onTestAudio }: { onClose: () => void; orientation: 'portrait'|'landscape'; haptics: boolean; onTestAudio: (event:'pistol'|'rifle'|'shotgun'|'idle'|'reload'|'warShot'|'warBoom'|'firePop')=>void }) {
   const [values, setValues] = useState(getTuning());
   const [status, setStatus] = useState('');
   useEffect(() => subscribeTuning(() => setValues(getTuning())), []);
@@ -27,7 +27,7 @@ export default function DebugPanel({ onClose, orientation, haptics, onTestAudio 
       {groups.map(group => <section key={group}>
         <h3>{group}</h3>
         {group==='Audio' && <div className="dc-sound-preview">
-          {(['pistol','rifle','shotgun','idle','reload'] as const).map(event=>
+          {(['pistol','rifle','shotgun','idle','reload','warShot','warBoom','firePop'] as const).map(event=>
           <button key={event} onClick={()=>onTestAudio(event)}>▶ {event.toUpperCase()}</button>)}
         </div>}
         <div className="dc-debug-grid">{keys.filter(k => TUNING[k][1] === group).map(k => {
