@@ -1,0 +1,19 @@
+{
+  "version": "dead-city-defaults-10oct2026",
+  "type": "incremental",
+  "repository": "benryaus-cmd/zombie-game",
+  "commit": "70db50f8f4053369c742e5c319a997ea512dbae1",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/70db50f8f4053369c742e5c319a997ea512dbae1/",
+  "fileCount": 2,
+  "description": "Set 129 Dead City tuning defaults to the user's 10 October JSON, including 23 changed default values and finer number-input steps for exact decimals. Default Metal FM slider is 10% for new users; preserve existing saved user volume and live tuning selections. Do not modify engine, game mechanics, UI, radio integration, imports or unrelated assets.",
+  "files": [
+    {
+      "source": "src/zombie/tuning.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/tuning.ts"
+    },
+    {
+      "source": "src/zombie/MetalRadio.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/MetalRadio.tsx"
+    }
+  ]
+}
