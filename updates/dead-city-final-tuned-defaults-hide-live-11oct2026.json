@@ -2,10 +2,10 @@
   "version": "dead-city-final-tuned-defaults-hide-live-11oct2026",
   "type": "incremental",
   "repository": "benryaus-cmd/zombie-game",
-  "commit": "a81f43a6a45a1cb54407985b79803eadb9bb160f",
-  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/a81f43a6a45a1cb54407985b79803eadb9bb160f/",
+  "commit": "253b4411c6f71253c9f2f847ef4ad64b2cdd3296",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/253b4411c6f71253c9f2f847ef4ad64b2cdd3296/",
   "fileCount": 3,
-  "description": "Set ALL 131 Dead City gameplay defaults to the owner's final 11 Oct 2026 JSON. The 10 updated defaults include pickup guide opacity 0, ON-first lamp flicker 1, chance .38, peak 1.2, range .5, warmth .1, flash distance 9m, rain opacity .48, radius 7m, brightness .6. All other 121 values already match. Additional non-instanced lamp bulbs now use exactly the same location-aware pulse multiplier as Map2 instanced bulbs, light pools and real point lights. Hide LIVE TEST VALUES button/panel and all FPS UI; leave original developer code intact, restorable via one source toggle. No gameplay changes or saved-preference replacement, no full import.",
+  "description": "Release the owner's exact 131-setting Dead City tuned preset from 11 Oct 2026. Ten default values have changed versus the prior release: pickup guide opacity=0; ON-first streetlight flicker=1, probability=.38, peak=1.2, illumination range=.5, warmth=.1, flash distance=9m; rain opacity=.48, radius=7m and brightness=.6. The other 121 defaults already match. Version the developer tuning storage to ignore old test-only overrides on the first update, preserving separately stored gameplay saves, orientation, haptics and Metal FM 10% volume. Keep all scene lamps (instanced bulbs, light pools, actual lights and non-instanced bulbs) on the shared local lighting pulse. Hide both LIVE TEST VALUES menu button/panel and FPS widget, while leaving developer code available behind a single source flag.",
   "files": [
     {
       "source": "src/zombie/tuning.ts",
