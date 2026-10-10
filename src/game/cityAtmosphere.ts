@@ -124,7 +124,13 @@ export class CityAtmosphere {
     }
     this.bulbs.visible=settings.streetLights;this.pools.visible=settings.streetLights&&settings.lampPools;
     const positions=[...this.extra,...anchors.map(anchor=>anchor.position)].filter(p=>Math.hypot(p.x-x,p.z-z)<=limit);
-    for(const anchor of anchors)anchor.bulbMaterial.emissiveIntensity=settings.streetLights?2.8*lampActivation(Math.hypot(anchor.position.x-x,anchor.position.z-z),settings):0;
+    // Extra non-instanced lamp bulbs must follow the same pulse and distance
+    // limit as the instanced bulbs, ground pools and actual point lights.
+    for(const anchor of anchors){
+      const base=lampActivation(Math.hypot(anchor.position.x-x,anchor.position.z-z),settings);
+      anchor.bulbMaterial.emissiveIntensity=settings.streetLights?
+        2.8*base*this.flickerLocal(anchor.position.x,anchor.position.z,now/1000):0;
+    }
     const matrix=new THREE.Matrix4(),rotation=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2);
     this.pools.count=Math.min(128,positions.length);
     this.poolSites=[];this.poolBases=[];

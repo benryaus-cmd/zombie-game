@@ -45,6 +45,9 @@ type Enemy = {
 };
 const INITIAL_HUD: Hud = { health: 100, wave: 0, kills: 0, alive: 0, queued: 0, ammo: 12, reserve: 96, weapon: 'pistol', reloading: false, countdown: 0, over: false, ready: false, notice: 'LOADING THE CITY...', portal: false, hit: false, hurt: false, score:0, multiplier:1, combo:0, callout:'', pickupMessage:'' };
 const HUBSIDE_URL = 'https://preview--55efd0b1-9368-4172-9456-53db458ef667.aippy.live';
+// Set true only when the removable LIVE TEST VALUES / FPS developer tool is needed.
+// No debug UI or FPS measurement is mounted in the published game.
+const SHOW_LIVE_TEST_VALUES = false;
 /** Act on pointer DOWN, not click. Android WebView can suppress synthetic clicks
  * from a second touch while the first finger owns MOVE's pointer capture.
  * A mouse/keyboard can still activate these buttons with Enter/Space. */
@@ -879,7 +882,7 @@ export default function ZombieGame() {
       onPointerCancel={event => releaseGesture(event, true)}
       onLostPointerCapture={event => releaseGesture(event, true)}
     />
-    <div style={{display:'none'}} aria-hidden="true"><DebugFPS /></div>
+    {SHOW_LIVE_TEST_VALUES && <div style={{display:'none'}} aria-hidden="true"><DebugFPS /></div>}
     <div className="zombie-hud">
       {started && !hud.over && <Radar read={readRadar} />}
       <MetalRadio radio={radio} onOpen={openRadio} onClose={closeRadio} />
@@ -933,7 +936,7 @@ export default function ZombieGame() {
           <h1>{hud.over ? 'GAME OVER' : 'DEAD CITY'}</h1>
           <p>{hud.over ? 'You survived ' + hud.wave + ' waves and eliminated ' + hud.kills + ' zombies.' : 'The streets are overrun. Keep moving, aim and shoot, and survive the waves.'}</p>
           <p className="zombie-hint">{hud.ready ? 'MOVE: LEFT STICK / WASD · SWIPE TO AIM · DOUBLE TAP TO FIRE · HOLD SECOND TAP FOR AUTO FIRE' : hud.notice}</p>
-          <button className="zombie-test-button" onClick={openDebug}>LIVE TEST VALUES / FPS</button>
+          {SHOW_LIVE_TEST_VALUES && <button className="zombie-test-button" onClick={openDebug}>LIVE TEST VALUES / FPS</button>}
           <div className="zombie-orientation" role="group" aria-label="Game orientation">
             {(['portrait', 'landscape'] as const).map(value => <button key={value} aria-pressed={orientation === value} onClick={() => setOrientation(value)}>{value.toUpperCase()}</button>)}
             <button aria-pressed={haptics} onClick={() => setHaptics(v => !v)}>HAPTICS {haptics ? 'ON' : 'OFF'}</button>
@@ -947,6 +950,6 @@ export default function ZombieGame() {
         </div>
       </div>}
     </div>
-    {debugOpen && <DebugPanel orientation={orientation} haptics={haptics} onTestAudio={event=>engine.current?.previewAudio(event)} onCollapseChange={collapsed=>engine.current?.setDeveloperPanelOpen(!collapsed)} onClose={() => { engine.current?.setDeveloperPanelOpen(false);setDebugOpen(false); }} />}
+    {SHOW_LIVE_TEST_VALUES && debugOpen && <DebugPanel orientation={orientation} haptics={haptics} onTestAudio={event=>engine.current?.previewAudio(event)} onCollapseChange={collapsed=>engine.current?.setDeveloperPanelOpen(!collapsed)} onClose={() => { engine.current?.setDeveloperPanelOpen(false);setDebugOpen(false); }} />}
   </div>;
 }
