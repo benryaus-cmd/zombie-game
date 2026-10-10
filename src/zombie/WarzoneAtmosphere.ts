@@ -53,7 +53,8 @@ export function chooseBurstGroups(double:boolean,random=()=>Math.random()):numbe
 /** Decorative distant fighting only. No damage, no colliders, no fire barrels. */
 export class WarzoneAtmosphere {
  private root=new THREE.Group();
- private readonly flashTexture=radialMask(),trailTexture=tracerMask();
+ private readonly flashTexture=radialMask();
+ private readonly trailTexture=tracerMask();
  private readonly muzzle=new THREE.Sprite(new THREE.SpriteMaterial({map:this.flashTexture,
   color:0xffe3a2,transparent:true,depthTest:true,depthWrite:false,fog:false,toneMapped:false}));
  private readonly explosion=new THREE.Sprite(new THREE.SpriteMaterial({map:this.flashTexture,
