@@ -146,7 +146,11 @@ export const TUNING = {
 } as const satisfies Record<string, readonly [string,string,number,number,number,number]>;
 export type TuneKey = keyof typeof TUNING;
 export type TuneValues = Record<TuneKey, number>;
-const KEY = 'dead-city-debug-values-v1';
+// Release preset: use a fresh developer-tuning storage key so old experimental
+// overrides cannot silently defeat the final defaults after the panel is hidden.
+// Keep the old v1 localStorage entry intact for rollback. Gameplay saves,
+// orientation, haptics and Metal FM preferences use separate keys.
+const KEY = 'dead-city-final-tuning-11oct2026';
 const keys = Object.keys(TUNING) as TuneKey[];
 export const DEFAULT_TUNING = Object.fromEntries(keys.map(k => [k, TUNING[k][2]])) as TuneValues;
 export function validateTune(key: TuneKey, n: number) {
