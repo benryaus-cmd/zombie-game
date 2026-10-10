@@ -195,6 +195,10 @@ export class WarzoneAtmosphere {
  update(dt:number,player:THREE.Vector3,camera?:THREE.Camera){
   if(this.destroyed)return;
   const t=getTuning();this.clock+=dt;
+  if(t.warEventsEnabled<.5){
+   this.burst=null;this.projectiles.length=0;this.flashAge=0;this.explosionAge=0;
+   this.muzzle.visible=false;this.explosion.visible=false;this.explosionLight.visible=false;
+  }
   const count=Math.min(this.sites.length,Math.round(t.warFireCount));
   const nearest:{site:Site;distance:number}[]=[];
   for(let i=0;i<this.sites.length;i++){

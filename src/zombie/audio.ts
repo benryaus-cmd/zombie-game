@@ -74,6 +74,7 @@ export class ZombieAudio {
  private listenerPosition=new THREE.Vector3();
  private disposed=false;
  private paused=false;
+ private preloadStarted=false;
  private lastClip=new Map<string,string>();
 
  setPaused(state:boolean){this.paused=state;this.update();}
@@ -103,11 +104,13 @@ export class ZombieAudio {
    } catch(e){console.warn('Dead City: audio unavailable',e);return;}
   }
   if(this.context.state==='suspended')void this.context.resume().catch(()=>undefined);
-  void this.preload();
+  if(!this.preloadStarted){this.preloadStarted=true;void this.preload();}
  }
  private async preload() {
   // Small essentials first, then only the files the current game actually uses.
-  for(const [index,name] of Object.keys(URLS).entries()){
+  const priority=['rifle-0.wav','rifle-1.wav','rifle-2.wav','war-explosion.wav','war-fire-crackle.ogg'];
+  const order=[...priority,...Object.keys(URLS).filter(key=>!priority.includes(key))];
+  for(const [index,name] of order.entries()){
    if(this.disposed)return;
    // Batch with explicit yield; don't decode all samples in one frame.
    void this.load(name);
