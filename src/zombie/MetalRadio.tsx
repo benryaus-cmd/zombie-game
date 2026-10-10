@@ -11,7 +11,7 @@ function storedVolume(){
   try {const stored=localStorage.getItem(VOLUME_KEY);
     if(stored!==null){const n=Number(stored);if(Number.isFinite(n))return Math.max(0,Math.min(1,n));}
   }catch{/* defaults */}
-  return .3;
+  return .1; // Default Metal FM volume is 10%; keep any saved user preference.
 }
 function storedEnabled(){
   try{return localStorage.getItem(ENABLED_KEY)!=='off';}catch{return true;}
