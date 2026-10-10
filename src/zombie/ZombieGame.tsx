@@ -379,6 +379,22 @@ class ZombieEngine {
     this.audio.play('alert',new THREE.Vector3(x,body.position.y+1,z),'alert-'+body.id);
     this.queued--;
   }
+  private spurtStumps(enemy: Enemy, now: number, floor: number) {
+    const t=getTuning();
+    if (!enemy.missing.size || now>=enemy.bleedUntil || now<enemy.nextBleedAt) return;
+    enemy.nextBleedAt=now+Math.max(.06,t.stumpBleedInterval);
+    const parts:{region:Region,bone:string}[]=[
+      {region:'arm-l',bone:'UpperArmL'},{region:'arm-r',bone:'UpperArmR'},
+      {region:'leg-l',bone:'UpperLegL'},{region:'leg-r',bone:'UpperLegR'}];
+    enemy.root.updateMatrixWorld(true);
+    for (const {region,bone} of parts) if (enemy.missing.has(region)) {
+      const joint=enemy.root.getObjectByName(bone);
+      if(!joint)continue;
+      const point=joint.getWorldPosition(new THREE.Vector3());
+      const outward=new THREE.Vector3(Math.random()-.5,.1+Math.random()*.35,Math.random()-.5).normalize();
+      this.blood.burst(point,outward,t.stumpBleedStrength,floor);
+    }
+  }
   private updateEnemy(enemy: Enemy, delta: number, now: number) {
     const t=getTuning();
     const legsLost=Number(enemy.missing.has('leg-l'))+Number(enemy.missing.has('leg-r'));
@@ -403,6 +419,8 @@ class ZombieEngine {
       enemy.nextVocalAt=now + Math.max(1,getTuning().zombieGroanInterval)*(.5+Math.random());
     }
     if (enemy.deadAt > 0) {
+      // Freshly killed, dismembered corpses still bleed briefly until despawn.
+      this.spurtStumps(enemy,now,getGroundHeight(this.world,enemy.x,enemy.z));
       if (now - enemy.deadAt > getTuning().corpseTime) {
         enemy.mixer?.stopAllAction();
         this.removeEnemy(enemy);
@@ -449,20 +467,7 @@ class ZombieEngine {
     const visual=enemy.root.children[0] as THREE.Group | undefined;
     if(visual)positionDamagedZombie(enemy.root,visual,enemy.missing,enemy.baseVisualY,
       floor,now,t.hopHeight,t.hopFrequency);
-    if(enemy.missing.size && now<enemy.bleedUntil && now>=enemy.nextBleedAt) {
-      enemy.nextBleedAt=now+Math.max(.06,t.stumpBleedInterval);
-      const parts:{region:Region,bone:string}[]=[
-        {region:'arm-l',bone:'UpperArmL'},{region:'arm-r',bone:'UpperArmR'},
-        {region:'leg-l',bone:'UpperLegL'},{region:'leg-r',bone:'UpperLegR'}];
-      enemy.root.updateMatrixWorld(true);
-      for(const {region,bone} of parts)if(enemy.missing.has(region)){
-        const joint=enemy.root.getObjectByName(bone);
-        if(!joint)continue;
-        const point=joint.getWorldPosition(new THREE.Vector3());
-        const outward=new THREE.Vector3(Math.random()-.5,.1+Math.random()*.35,Math.random()-.5).normalize();
-        this.blood.burst(point,outward,t.stumpBleedStrength,floor);
-      }
-    }
+    this.spurtStumps(enemy,now,floor);
     return true;
   }
 
