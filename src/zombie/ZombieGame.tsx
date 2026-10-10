@@ -156,13 +156,14 @@ class ZombieEngine {
     this.world = createWorld(container, .06, 'map2');
     this.blood = new BloodEffects(this.world.scene);
     this.trails = new ShotTrails(this.world.scene);
-    this.supplies = new SupplyDrops(this.world, (kind,amount)=>this.giveSupply(kind,amount));
+
     this.world.cameraMode = 'third';
     this.world.playerPitch = -.08;
     this.world.botsEnabled = false;
     this.world.bunnyGroup.visible = false;
     applySkyLighting(this.world, 'night');
     this.world.updateChunks(this.world.playerPosition.x, this.world.playerPosition.z);
+    this.supplies = new SupplyDrops(this.world, (kind,amount)=>this.giveSupply(kind,amount));
     // The inherited worldMovement calls the expensive chunk/LOD updater each
     // animation frame, including while jumping. Keep streaming responsive
     // without rebuilding geometry/LOD every airborne frame.
@@ -497,6 +498,18 @@ class ZombieEngine {
       this.cameraKick = Math.max(this.cameraKick, .17);
       if (this.health <= 0) { this.over = true; this.firing = false; this.notice = 'YOU WERE OVERRUN'; }
       this.emitHud();
+    }
+    // Even zombies already in melee range must keep spacing. Otherwise attackers
+    // all stop at the same player point and appear as one overlapping body.
+    if(length<=1.15) {
+      const near=this.enemies.filter(other=>other!==enemy&&other.deadAt<=0 &&
+        Math.hypot(other.x-enemy.x,other.z-enemy.z)<t.zombieSpacing*2.2)
+        .map(other=>({x:other.x,z:other.z}));
+      if(near.length) {
+        const moved=stepSeparated({x:enemy.x,z:enemy.z},{x:enemy.x,z:enemy.z},near,
+          enemy.blockers,Math.min(.1,delta*enemy.speed*.7),.47,t.zombieSpacing);
+        enemy.x=moved.x;enemy.z=moved.z;
+      }
     }
     // Ground alignment follows the actual surviving foot for hoppers, torso for crawlers.
     // Do not add bobbing to the whole zombie root (that caused the old floating bugs).

@@ -20,7 +20,7 @@ export class SupplyDrops {
  };
  private readonly line:THREE.Line;
  private readonly lineGeometry=new THREE.BufferGeometry();
- private readonly lineMaterial=new THREE.LineBasicMaterial({color:0xffd569,transparent:true,opacity:.12,depthWrite:false});
+ private readonly lineMaterial=new THREE.LineBasicMaterial({color:0xffd569,transparent:true,opacity:.12,depthWrite:false,depthTest:false});
  constructor(private world:WorldEngine,private give:(type:PickupType,amount:number)=>void) {
   const attr=new THREE.BufferAttribute(new Float32Array(6),3).setUsage(THREE.DynamicDrawUsage);
   this.lineGeometry.setAttribute('position',attr);
@@ -30,6 +30,16 @@ export class SupplyDrops {
   for(let i=0;i<12;i++)this.spawn();
  }
  get positions():PickupPoint[] {return this.items.map(({x,z,kind})=>({x,z,kind}));}
+ private removeItem(item:Item) {
+   item.group.traverse(o=>{
+     if(!(o instanceof THREE.Mesh))return;
+     if(o.geometry!==this.box)o.geometry.dispose();
+     for(const material of Array.isArray(o.material)?o.material:[o.material]) {
+       if(!Object.values(this.materials).includes(material as THREE.MeshBasicMaterial))material.dispose();
+     }
+   });
+   item.group.removeFromParent();
+ }
  private spawn() {
   const player=this.world.playerPosition,building=nearbyBuildings(player.x,player.z,this.world.colliders,58);
   let x=0,z=0,valid=false;
@@ -60,10 +70,10 @@ export class SupplyDrops {
     const item=this.items[i],d=Math.hypot(item.x-px,item.z-pz);
     if(d<1.7){
       this.give(item.kind,item.kind==='rifle'?36:item.kind==='shotgun'?12:item.kind==='pistol'?30:25);
-      item.group.removeFromParent();this.items.splice(i,1);continue;
+      this.removeItem(item);this.items.splice(i,1);continue;
     }
     if(d>100 && this.clock-item.spawned>20){
-      item.group.removeFromParent();this.items.splice(i,1);continue;
+      this.removeItem(item);this.items.splice(i,1);continue;
     }
     item.group.position.y=getGroundHeight(this.world,item.x,item.z)+.63+Math.sin(this.clock*2.2+item.phase)*.14;
     item.group.rotation.y+=dt*.65;
@@ -83,12 +93,11 @@ export class SupplyDrops {
   // A failed spawn attempt is rare; avoid spinning forever when a dense city surrounds the player.
   this.spawn();
  }
- clear() {for(const item of this.items)item.group.removeFromParent();this.items=[];for(let i=0;i<12;i++)this.spawn();}
+ clear() {for(const item of this.items)this.removeItem(item);this.items=[];for(let i=0;i<12;i++)this.spawn();}
  dispose() {
-  for(const item of this.items)item.group.removeFromParent();
+  for(const item of this.items)this.removeItem(item);
   this.items=[];this.group.removeFromParent();this.line.removeFromParent();
   this.box.dispose();for(const m of Object.values(this.materials))m.dispose();
-  this.group.traverse(o=>{if(o instanceof THREE.Mesh&&o.geometry!==this.box)o.geometry.dispose();});
   this.lineGeometry.dispose();this.lineMaterial.dispose();
  }
 }

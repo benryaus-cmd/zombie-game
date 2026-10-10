@@ -30,9 +30,10 @@ export default function Radar({read}:{read:()=>RadarFrame|null}) {
    ctx.fillStyle='#778086b5';
    let buildings=0;
    for(const box of state.buildings){
-     if(box.maxY<.65||box.minY>2.3||++buildings>550)continue;
+     if(box.maxY<.65||box.minY>2.3)continue;
      const centerX=(box.minX+box.maxX)/2,centerZ=(box.minZ+box.maxZ)/2;
      if(Math.abs(centerX-px)>range+15||Math.abs(centerZ-pz)>range+15)continue;
+     if(++buildings>550)break;
      const corners=[[box.minX,box.minZ],[box.maxX,box.minZ],[box.maxX,box.maxZ],[box.minX,box.maxZ]];
      ctx.beginPath();
      corners.forEach(([x,z],i)=>{const q=point(x,z);if(!i)ctx.moveTo(mid+q.x,mid+q.y);else ctx.lineTo(mid+q.x,mid+q.y);});
