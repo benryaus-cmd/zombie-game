@@ -33,6 +33,9 @@ export class WarzoneAtmosphere {
  ];
  private readonly glowMat=new THREE.MeshBasicMaterial({color:0xed632a,transparent:true,opacity:.20,depthWrite:false,side:THREE.DoubleSide});
  private readonly glowGeo=new THREE.CircleGeometry(2.3,16);
+ private readonly scorchGeo=new THREE.CircleGeometry(1.5,16);
+ private readonly scorchMat=new THREE.MeshBasicMaterial({color:0x1c1817,transparent:true,opacity:.42,depthWrite:false,side:THREE.DoubleSide});
+ private readonly scrapGeo=new THREE.BoxGeometry(.55,.16,.24);
  private readonly smokeGeom=new THREE.BufferGeometry();
  private readonly smokePositions=new Float32Array(8*11*3);
  private readonly smokeMat=new THREE.PointsMaterial({color:0x4d4844,size:1.2,transparent:true,opacity:.30,depthWrite:false,sizeAttenuation:true});
@@ -41,6 +44,10 @@ export class WarzoneAtmosphere {
  private readonly tracerGeom=new THREE.BufferGeometry();
  private readonly tracerMaterial=new THREE.LineBasicMaterial({color:0xfdb95b,transparent:true,opacity:.0,depthWrite:false,depthTest:true});
  private readonly traces:THREE.LineSegments;
+ private readonly explosionMat=new THREE.SpriteMaterial({color:0xff8b3e,transparent:true,opacity:0,depthWrite:false});
+ private readonly explosion=new THREE.Sprite(this.explosionMat);
+ private readonly explosionLight=new THREE.PointLight(0xff7442,0,20);
+ private explosionAge=0;
  private readonly traceData=new Float32Array(3*8*2);
  private streaks:Streak[]=[];
  private clock=0;
@@ -58,6 +65,15 @@ export class WarzoneAtmosphere {
      if(!freeAt(x,z,nearby,1.3))continue;
      const group=new THREE.Group();
      group.position.set(x,getGroundHeight(world,x,z),z);
+     const scorch=new THREE.Mesh(this.scorchGeo,this.scorchMat);
+     scorch.rotation.x=-Math.PI/2;scorch.position.y=.02;group.add(scorch);
+     for(let j=0;j<3;j++){
+       const scrap=new THREE.Mesh(this.scrapGeo,this.barrelMat);
+       const angle=j*2.1+index*.5;
+       scrap.position.set(Math.cos(angle)*(1.2+j*.1),.12,Math.sin(angle)*(1.2+j*.1));
+       scrap.rotation.y=angle+.4;
+       group.add(scrap);
+     }
      const cylinder=new THREE.Mesh(this.barrel,this.barrelMat);cylinder.position.y=.46;group.add(cylinder);
      // Rust bands use shared geometry/materials and do not block the road.
      for(const y of [.2,.75]){
@@ -81,6 +97,8 @@ export class WarzoneAtmosphere {
    this.traces=new THREE.LineSegments(this.tracerGeom,this.tracerMaterial);
    this.traces.frustumCulled=false;this.traces.renderOrder=2;this.root.add(this.traces);
    for(const lamp of this.lights) {lamp.castShadow=false;this.root.add(lamp);}
+   this.explosion.visible=false;this.root.add(this.explosion,this.explosionLight);
+   this.explosionLight.castShadow=false;
  }
  reset(){this.nextBattle=this.clock+12;this.streaks=[];this.battleBurst=0;}
  update(dt:number,player:THREE.Vector3){
@@ -167,9 +185,20 @@ export class WarzoneAtmosphere {
        const tip=from.clone().lerp(end,Math.min(.97,travel+Math.min(3,len*.12)/len));
        this.streaks.push({start:mid,end:tip,age:.20+Math.random()*.11});
        if(t.warAmbienceVolume>.01)this.onSound('warShot',mid);
-       if(this.battleBurst===0 && Math.random()<.22 && t.warAmbienceVolume>.01)
-         this.onSound('warBoom',end);
+       if(this.battleBurst===0 && Math.random()<.22){
+         this.explosion.position.copy(end);
+         this.explosionLight.position.copy(end);
+         this.explosionAge=.55;this.explosion.visible=true;
+         if(t.warAmbienceVolume>.01)this.onSound('warBoom',end);
+       }
      }
+   }
+   if(this.explosionAge>0){
+     this.explosionAge=Math.max(0,this.explosionAge-dt);
+     this.explosion.visible=this.explosionAge>0;
+     this.explosionMat.opacity=.55*this.explosionAge/.55;
+     this.explosion.scale.setScalar(3.5+(1-this.explosionAge/.55)*4.5);
+     this.explosionLight.intensity=this.explosionAge>0 ? t.warExplosionLight*this.explosionAge/.55 : 0;
    }
    this.streaks=this.streaks.filter(s=>{s.age-=dt;return s.age>0;}).slice(-8);
    this.traceData.fill(0);
@@ -187,8 +216,8 @@ export class WarzoneAtmosphere {
  }
  dispose(){
    this.destroyed=true;this.root.removeFromParent();
-   this.barrel.dispose();this.flame.dispose();this.glowGeo.dispose();this.smokeGeom.dispose();this.tracerGeom.dispose();
-   this.barrelMat.dispose();this.stripeMat.dispose();this.glowMat.dispose();this.smokeMat.dispose();this.tracerMaterial.dispose();
+   this.barrel.dispose();this.flame.dispose();this.glowGeo.dispose();this.scorchGeo.dispose();this.scrapGeo.dispose();this.smokeGeom.dispose();this.tracerGeom.dispose();
+   this.barrelMat.dispose();this.stripeMat.dispose();this.glowMat.dispose();this.scorchMat.dispose();this.smokeMat.dispose();this.tracerMaterial.dispose();this.explosionMat.dispose();
    for(const mat of this.flameMats)mat.dispose();
  }
 }

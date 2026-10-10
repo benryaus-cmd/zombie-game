@@ -397,8 +397,12 @@ class ZombieEngine {
     // walls and building courtyards must never trap the last zombie.
     const reachable=reachableSpawnArea({x:px,z:pz},this.world.colliders,32);
     let x = 0, z = 0, found = false;
-    for (let i = 0; i < 40; i++) {
-      const a = Math.random() * Math.PI * 2, radius = 15 + Math.random() * 12;
+    // Prefer off-camera distant spawns; if a walled courtyard prevents all
+    // distant sites, search nearer ACCESSIBLE streets rather than stall a wave.
+    for (let i = 0; i < 64; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const radius = i < 40 ? 15 + Math.random() * 12 :
+        i < 56 ? 7 + Math.random() * 10 : 3 + Math.random() * 5;
       const sx = px + Math.cos(a) * radius, sz = pz + Math.sin(a) * radius;
       if (!isInsideBuilding(sx,sz,.8) &&
           !blocked(this.world,sx,sz,.7) &&

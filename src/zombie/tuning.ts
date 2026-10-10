@@ -106,6 +106,7 @@ export const TUNING = {
   warStreetFlicker: ['Faulty streetlight frequency','Warzone',.6,0,3,.1],
   warFlameScale: ['Flame height / width','Warzone',1,.1,3,.1],
   warFireLight: ['Fire light intensity','Warzone',1.25,0,6,.1],
+  warExplosionLight: ['Distant explosion flash brightness','Warzone',2,0,8,.2],
   warSmokeOpacity: ['Smoke transparency','Warzone',.28,0,1,.05],
   warTracerBrightness: ['Distant tracer brightness','Warzone',.75,0,1,.05],
   warBattleInterval: ['Seconds between distant battles','Warzone',21,5,100,1],
