@@ -1,6 +1,13 @@
 import * as THREE from 'three';
 import { getTuning } from './tuning';
 
+/** A cosmetic muzzle streak converges on the SAME camera ray used by hitscan. */
+export function tracerToReticle(muzzle:THREE.Vector3,cameraRay:THREE.Ray,aimDistance:number) {
+  const hit=cameraRay.at(aimDistance,new THREE.Vector3());
+  const direction=hit.sub(muzzle);
+  return {direction,distance:direction.length()};
+}
+
 /** A single draw-call, capped pool of short-lived tracer streaks (cosmetic, hits remain hitscan). */
 export class ShotTrails {
   private readonly capacity=96;

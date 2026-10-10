@@ -16,7 +16,7 @@ import { WEAPONS, DISMEMBERMENT, damageFor, severable, nearestHit, wallDistance,
 import { shareSkeletons, bodySpheres, detachRegion, updateDebris, disposeDebris, positionDamagedZombie, type Debris } from './bodyParts';
 import { ZombieAudio } from './audio';
 import { BloodEffects } from './bloodEffects';
-import { ShotTrails } from './shotTrails';
+import { ShotTrails, tracerToReticle } from './shotTrails';
 import { getTuning } from './tuning';
 import { awardKill, comboRemaining, newScore, type ScoreState } from './score';
 import DebugPanel from './DebugPanel';
@@ -291,10 +291,9 @@ class ZombieEngine {
       // Hitscan aims down the CAMERA reticle. A visible round leaves the real muzzle
       // and converges onto that camera-ray impact point, even with a high camera.
       const aimDistance=Math.min(config.range, wall, target?.distance ?? Infinity);
-      const aimPoint=ray.at(aimDistance,new THREE.Vector3());
       if (pellet===0 || (this.weapon==='shotgun' && pellet%3===0)) {
-        const fromMuzzle=aimPoint.clone().sub(muzzle);
-        this.trails.shot(muzzle,fromMuzzle,fromMuzzle.length());
+        const tracer=tracerToReticle(muzzle,ray,aimDistance);
+        this.trails.shot(muzzle,tracer.direction,tracer.distance);
       }
       if (!target) {
         if(pellet===0 && Number.isFinite(wall) && wall<config.range)
