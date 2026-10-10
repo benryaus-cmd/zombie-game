@@ -41,7 +41,14 @@ export default function Radar({read}:{read:()=>RadarFrame|null}) {
    }
    for(const p of state.supplies){
      const q=point(p.x,p.z);if(Math.hypot(q.x,q.y)>mid-5)continue;
-     ctx.fillStyle='#ffda54';ctx.fillRect(mid+q.x-3,mid+q.y-3,6,6);
+     if(p.kind==='health'){
+       // White medical package with a tiny red cross, visible even in a horde.
+       ctx.fillStyle='#ffffff';ctx.fillRect(mid+q.x-4,mid+q.y-4,8,8);
+       ctx.fillStyle='#c83638';ctx.fillRect(mid+q.x-1,mid+q.y-3,2,6);
+       ctx.fillRect(mid+q.x-3,mid+q.y-1,6,2);
+     }else{
+       ctx.fillStyle='#ffda54';ctx.fillRect(mid+q.x-3,mid+q.y-3,6,6);
+     }
    }
    for(const z of state.zombies){
      const q=point(z.x,z.z);if(Math.hypot(q.x,q.y)>mid-5)continue;
@@ -55,5 +62,5 @@ export default function Radar({read}:{read:()=>RadarFrame|null}) {
   timer=requestAnimationFrame(paint);
   return()=>cancelAnimationFrame(timer);
  },[read]);
- return <canvas className="dc-radar" ref={ref} width={148} height={148} aria-label="Heading up radar: yellow player and supplies, green zombies, grey buildings"/>;
+ return <canvas className="dc-radar" ref={ref} width={148} height={148} aria-label="Heading up radar: yellow player and ammo, white medical packs, green zombies and grey buildings"/>;
 }

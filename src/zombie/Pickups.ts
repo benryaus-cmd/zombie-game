@@ -12,11 +12,14 @@ export class SupplyDrops {
  private clock=0;
  private group=new THREE.Group();
  private readonly box=new THREE.BoxGeometry(.56,.31,.4);
+ private readonly crossHorizontal=new THREE.BoxGeometry(.29,.07,.035);
+ private readonly crossVertical=new THREE.BoxGeometry(.07,.28,.035);
+ private readonly medicalRed=new THREE.MeshBasicMaterial({color:0xd43a3a});
  private readonly materials={
   rifle:new THREE.MeshBasicMaterial({color:0xffcb58}),
   shotgun:new THREE.MeshBasicMaterial({color:0xff8b48}),
   pistol:new THREE.MeshBasicMaterial({color:0xe0bc62}),
-  health:new THREE.MeshBasicMaterial({color:0x80e78e}),
+  health:new THREE.MeshBasicMaterial({color:0xf2f5ef}),
  };
  private readonly line:THREE.Line;
  private readonly lineGeometry=new THREE.BufferGeometry();
@@ -33,9 +36,9 @@ export class SupplyDrops {
  private removeItem(item:Item) {
    item.group.traverse(o=>{
      if(!(o instanceof THREE.Mesh))return;
-     if(o.geometry!==this.box)o.geometry.dispose();
+     if(![this.box,this.crossHorizontal,this.crossVertical].includes(o.geometry as THREE.BoxGeometry))o.geometry.dispose();
      for(const material of Array.isArray(o.material)?o.material:[o.material]) {
-       if(!Object.values(this.materials).includes(material as THREE.MeshBasicMaterial))material.dispose();
+       if(material!==this.medicalRed && !Object.values(this.materials).includes(material as THREE.MeshBasicMaterial))material.dispose();
      }
    });
    item.group.removeFromParent();
@@ -53,10 +56,17 @@ export class SupplyDrops {
   const rnd=Math.random(),kind:PickupType=rnd<.40?'rifle':rnd<.7?'shotgun':rnd<.84?'health':'pistol';
   const group=new THREE.Group(),cube=new THREE.Mesh(this.box,this.materials[kind]);
   group.add(cube);
+  if(kind==='health'){
+    // White supply case with a red medical cross; distinct from the yellow ammo crates.
+    const crossH=new THREE.Mesh(this.crossHorizontal,this.medicalRed);
+    const crossV=new THREE.Mesh(this.crossVertical,this.medicalRed);
+    crossH.position.z=crossV.position.z=.222;
+    group.add(crossH,crossV);
+  }
   const stripe=new THREE.Mesh(new THREE.BoxGeometry(.5,.07,.44),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.65}));
   stripe.position.y=.11;group.add(stripe);
   const marker=new THREE.Mesh(new THREE.TorusGeometry(.39,.025,4,12),
-    new THREE.MeshBasicMaterial({color:kind==='health'?0x83ff96:0xffce5c,transparent:true,opacity:.5}));
+    new THREE.MeshBasicMaterial({color:kind==='health'?0xffffff:0xffce5c,transparent:true,opacity:.5}));
   marker.rotation.x=Math.PI/2;marker.position.y=-.16;group.add(marker);
   group.position.set(x,getGroundHeight(this.world,x,z)+.62,z);
   this.group.add(group);
@@ -97,7 +107,7 @@ export class SupplyDrops {
  dispose() {
   for(const item of this.items)this.removeItem(item);
   this.items=[];this.group.removeFromParent();this.line.removeFromParent();
-  this.box.dispose();for(const m of Object.values(this.materials))m.dispose();
+  this.box.dispose();this.crossHorizontal.dispose();this.crossVertical.dispose();this.medicalRed.dispose();for(const m of Object.values(this.materials))m.dispose();
   this.lineGeometry.dispose();this.lineMaterial.dispose();
  }
 }

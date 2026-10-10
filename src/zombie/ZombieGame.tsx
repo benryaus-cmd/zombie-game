@@ -766,8 +766,7 @@ export default function ZombieGame() {
       <MetalRadio radio={radio} onOpen={openRadio} onClose={closeRadio} />
       {started && hud.hurt && !paused && <div className="zombie-damage-flash" aria-hidden="true" />}
       <header className="zombie-top">
-        <div className="zombie-brand"><strong>DEAD CITY</strong><span>HUBSIDE SURVIVAL</span></div>
-        <div className="zombie-health"><span>HEALTH {hud.health}%</span><div><i style={{ width: hud.health + '%' }} /></div></div>
+        <div className="zombie-health"><span>HP {hud.health}%</span><div><i style={{ width: hud.health + '%' }} /></div></div>
         <div className="zombie-wave"><strong>WAVE {hud.wave}</strong><small>{hud.alive + hud.queued} REMAINING</small></div>
         <div className="zombie-kills">KILLS <strong>{hud.kills}</strong></div>
         <div className="zombie-score">SCORE <strong>{hud.score.toLocaleString()}</strong>
@@ -788,7 +787,7 @@ export default function ZombieGame() {
           }} aria-label={`Change weapon. Currently ${hud.weapon}`}>
             <strong>{hud.weapon.toUpperCase()} ↻</strong>
             <span>{hud.reloading ? 'RELOADING…' : `${hud.ammo} / ${hud.reserve}`}</span>
-            <small>TAP TO SWITCH</small>
+
           </button>
           <button className="zombie-reload" onClick={() => engine.current?.reload()} aria-label="Reload weapon">RELOAD</button>
         </div>
