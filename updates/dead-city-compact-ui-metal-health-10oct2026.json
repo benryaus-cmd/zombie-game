@@ -1,0 +1,39 @@
+{
+  "version": "dead-city-compact-ui-metal-health-10oct2026",
+  "type": "incremental",
+  "repository": "benryaus-cmd/zombie-game",
+  "commit": "1bfe1946ef4491f7b370d66732228fc484abc701",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/1bfe1946ef4491f7b370d66732228fc484abc701/",
+  "fileCount": 7,
+  "description": "Compact in-game HUD: remove repeated Dead City brand, smaller higher HP bar, higher/smaller radar with MetalFM button alongside, ~25% shorter weapon box; change health pickups to white medical cases with red crosses and white radar markers. Repair MetalFM streaming by reusing HubSide's existing lazy LiveRadioController and dynamically constructed streaming URL. Includes both required unchanged HubSide radio modules. Preserve gameplay/assets/Aippy host.",
+  "files": [
+    {
+      "source": "src/zombie/ZombieGame.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/ZombieGame.tsx"
+    },
+    {
+      "source": "src/zombie/zombie.css",
+      "target": "src/games/importedGame/upstream/src/zombie/zombie.css"
+    },
+    {
+      "source": "src/zombie/Radar.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/Radar.tsx"
+    },
+    {
+      "source": "src/zombie/Pickups.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/Pickups.ts"
+    },
+    {
+      "source": "src/zombie/MetalRadio.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/MetalRadio.tsx"
+    },
+    {
+      "source": "src/game/liveRadio.ts",
+      "target": "src/games/importedGame/upstream/src/game/liveRadio.ts"
+    },
+    {
+      "source": "src/config/radio.ts",
+      "target": "src/games/importedGame/upstream/src/config/radio.ts"
+    }
+  ]
+}
