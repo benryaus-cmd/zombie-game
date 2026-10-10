@@ -46,7 +46,13 @@ export function useMetalRadio(){
 export type RadioController=ReturnType<typeof useMetalRadio>;
 export function MetalRadio({radio,onOpen,onClose}:{radio:RadioController;onOpen:()=>void;onClose:()=>void}){
   return <>
-    <button className="dc-radio-mini" onClick={onOpen} aria-label="MetalFM radio settings"
+    <button className="dc-radio-mini"
+      onPointerDown={event=>{
+        if(event.pointerType==='mouse'&&event.button!==0)return;
+        event.preventDefault();event.stopPropagation();onOpen();
+      }}
+      onClick={event=>{if(event.detail===0)onOpen();}}
+      aria-label="MetalFM radio settings"
       aria-pressed={radio.playing}>♫ METAL {radio.playing?'●':radio.buffering?'◌':'○'}</button>
     {radio.opened&&<div className="dc-radio-overlay" onPointerDown={event=>event.stopPropagation()}>
       <div className="dc-radio-dialog">

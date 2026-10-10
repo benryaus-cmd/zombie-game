@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { Collider } from './combat';
 import type { PickupPoint } from './Pickups';
 import { getTuning } from './tuning';
-export type RadarFrame = { px:number;pz:number;yaw:number;zombies:{x:number;z:number}[];supplies:PickupPoint[];buildings:Collider[] };
+export type RadarFrame = { px:number;pz:number;yaw:number;zombies:{x:number;z:number}[];supplies:PickupPoint[];buildings:Collider[];portal:{x:number;z:number} };
 /** World-space to heading-up radar pixels: forward is always up. */
 export function radarProject(dx:number,dz:number,yaw:number,scale:number) {
   return {x:(dx*Math.cos(yaw)-dz*Math.sin(yaw))*scale,
@@ -50,6 +50,26 @@ export default function Radar({read}:{read:()=>RadarFrame|null}) {
        ctx.fillStyle='#ffda54';ctx.fillRect(mid+q.x-3,mid+q.y-3,6,6);
      }
    }
+   // Blue HubSide portal marker. If farther than the radar range, show its
+   // bearing at the rim so players can still locate the return portal.
+   const portal=point(state.portal.x,state.portal.z);
+   const distance=Math.hypot(portal.x,portal.y);
+   const inRange=distance<=mid-11;
+   const factor=inRange?1:(mid-11)/Math.max(1,distance);
+   const bx=mid+portal.x*factor,by=mid+portal.y*factor;
+   ctx.strokeStyle='#4daeff';ctx.fillStyle='#136ac8';ctx.lineWidth=2;
+   ctx.beginPath();ctx.arc(bx,by,inRange?6:4,0,Math.PI*2);ctx.fill();ctx.stroke();
+   ctx.fillStyle='#e3f5ff';
+   if(inRange){
+     ctx.font='bold 8px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
+     ctx.fillText('H',bx,by+.3);
+   }else{
+     const a=Math.atan2(portal.y,portal.x);
+     ctx.beginPath();ctx.moveTo(bx+Math.cos(a)*7,by+Math.sin(a)*7);
+     ctx.lineTo(bx+Math.cos(a+2.4)*5,by+Math.sin(a+2.4)*5);
+     ctx.lineTo(bx+Math.cos(a-2.4)*5,by+Math.sin(a-2.4)*5);
+     ctx.closePath();ctx.fill();
+   }
    for(const z of state.zombies){
      const q=point(z.x,z.z);if(Math.hypot(q.x,q.y)>mid-5)continue;
      ctx.fillStyle='#71e883';ctx.beginPath();ctx.arc(mid+q.x,mid+q.y,3.3,0,Math.PI*2);ctx.fill();
@@ -62,5 +82,5 @@ export default function Radar({read}:{read:()=>RadarFrame|null}) {
   timer=requestAnimationFrame(paint);
   return()=>cancelAnimationFrame(timer);
  },[read]);
- return <canvas className="dc-radar" ref={ref} width={148} height={148} aria-label="Heading up radar: yellow player and ammo, white medical packs, green zombies and grey buildings"/>;
+ return <canvas className="dc-radar" ref={ref} width={148} height={148} aria-label="Heading up radar: yellow player and ammo, white medical packs, green zombies, blue HubSide portal and grey buildings"/>;
 }

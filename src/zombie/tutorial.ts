@@ -28,7 +28,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     hint:'Grab ammo crates around the map when supplies run low. Desktop: R.',focus:'RELOAD BUTTON'},
   {id:'pickup',title:'FIND SUPPLIES',
     instruction:'Follow the faint guide line to a pickup. Walk over it to collect automatically.',
-    hint:'Minimap: yellow = ammo, white/red cross = health, green = zombies.',focus:'MAP + PICKUPS'},
+    hint:'Minimap: yellow = ammo, white cross = health, green = zombies, blue = HubSide portal.',focus:'MAP + PICKUPS'},
   {id:'ready',title:'SURVIVE THE WAVES',
     instruction:'You are ready. Keep moving, aim for heads, collect supplies and survive each wave.',
     hint:'Quick kills build a score multiplier. ☰ pauses; ♫ METAL adjusts music.',focus:'START WAVES'},

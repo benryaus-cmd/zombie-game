@@ -12,6 +12,27 @@ export function fogVisualDistance(settings:RenderSettings,camera?:THREE.Camera):
 
 export function lampActivation(distance:number,settings:RenderSettings):number {const end=settings.lampActivationDistance,fade=Math.min(end,settings.lampFadeDistance);return distance>end?0:fade>0?Math.min(1,(end-distance)/fade):1;}
 
+/** Shared pulse calculation for Dead City's testable OFF-first / ON-first streetlights.
+ * Existing distance fades and light power still come from CityAtmosphere. */
+export function lampFlickerMultiplier(x:number,z:number,time:number,config:{
+ strength:number;idle:number;rate:number;chance:number;duration:number;peak:number;invert:number;
+}):number {
+ const onFirst=config.invert>=.5;
+ const idle=onFirst?config.peak:config.idle;
+ if(config.strength<=0)return idle;
+ const hash=(n:number)=>(Math.sin(n*12.9898+78.233)*43758.5453%1+1)%1;
+ const seed=hash(x*4.3+z*9.7);
+ const epoch=time*Math.max(.1,config.rate)+seed*19;
+ const interval=Math.floor(epoch),within=epoch-interval;
+ const active=hash(interval*23.7+seed*37.1) <
+   config.chance*Math.min(1,config.strength/2) && within<=config.duration;
+ if(!active)return idle;
+ const sputter=Math.sin(within*69+seed*7)>.5?.65:1;
+ // Flipping the mode reverses the steady state and the pulse, not the whole
+ // city's day/night lighting, renderer or current user-selected lamp settings.
+ return onFirst ? config.idle+(config.peak-config.idle)*(1-sputter) : config.peak*sputter;
+}
+
 export class CityAtmosphere {
   readonly root=new THREE.Group();readonly ground:THREE.Mesh;
   readonly lights:THREE.PointLight[]=[];
@@ -22,22 +43,11 @@ export class CityAtmosphere {
   private poolSites:THREE.Vector3[]=[];private poolBases:number[]=[];
   private flickerAt=-1;
   private flickerConfig={
-    strength:0,idle:.02,rate:1.5,chance:.45,duration:.2,peak:1.5,onRange:1,colour:0
+    strength:0,idle:.02,rate:1.5,chance:.45,duration:.2,peak:1.5,onRange:1,colour:0,invert:0
   };
   private lampSettings=getRenderSettings();
-  private static hash(n:number){return (Math.sin(n*12.9898+78.233)*43758.5453%1+1)%1;}
   private static flicker(x:number,z:number,time:number,config:typeof CityAtmosphere.prototype.flickerConfig){
-    if(config.strength<=0)return config.idle;
-    const seed=CityAtmosphere.hash(x*4.3+z*9.7);
-    // The same lamp stays OFF until a probabilistic on-cycle; each lamp independent.
-    const epoch=time*Math.max(.1,config.rate)+seed*19;
-    const interval=Math.floor(epoch),within=epoch-interval;
-    const selected=CityAtmosphere.hash(interval*23.7+seed*37.1) <
-      config.chance*Math.min(1,config.strength/2);
-    if(!selected||within>config.duration)return config.idle;
-    // Brief lamp sputter gives a bright pool and actual dynamic light on the player.
-    const flickering=Math.sin(within*69+seed*7)>.5?.65:1;
-    return config.peak*flickering;
+    return lampFlickerMultiplier(x,z,time,config);
   }
   private updateFlicker(time:number,settings:Partial<typeof this.flickerConfig>|number){
     if(typeof settings==='number')settings={strength:settings};

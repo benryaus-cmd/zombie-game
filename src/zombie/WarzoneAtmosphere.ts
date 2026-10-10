@@ -139,7 +139,7 @@ export class WarzoneAtmosphere {
   tick?.(performance.now()/1000,{
    strength:t.warStreetFlicker,idle:t.warLampIdle,rate:t.warLampRate,
    chance:t.warLampChance,duration:t.warLampDuration,peak:t.warLampPeak,
-   onRange:t.warLampRange,colour:t.warLampWarmth
+   onRange:t.warLampRange,colour:t.warLampWarmth,invert:t.warLampInvert
   });
   if(t.warEventsEnabled<.5){
    this.burst=null;this.projectiles.length=0;

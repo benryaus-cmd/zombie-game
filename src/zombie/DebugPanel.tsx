@@ -77,7 +77,20 @@ export default function DebugPanel({onClose,orientation,haptics,onTestAudio,onCo
       return <div className="dc-debug-field" key={k}>
        <div><label htmlFor={'dc-'+k}>{label}</label><button title="Reset this value"
         onClick={()=>resetTuning(k)} disabled={values[k]===DEFAULT_TUNING[k]}>↺</button></div>
-       <TuningInput keyName={k} value={values[k]} min={min} max={max} step={step}/>
+       {k==='warLampInvert' ?
+        <button type="button" className="dc-lamp-mode" aria-pressed={values.warLampInvert>=.5}
+          onPointerDown={event=>{
+            if(event.pointerType==='mouse'&&event.button!==0)return;
+            event.preventDefault();event.stopPropagation();
+            setTuning('warLampInvert',getTuning().warLampInvert>=.5?0:1);
+          }}
+          onClick={event=>{
+            if(event.detail===0)setTuning('warLampInvert',getTuning().warLampInvert>=.5?0:1);
+          }}>
+          {values.warLampInvert>=.5 ? 'ON BY DEFAULT · FLICKER OFF' : 'OFF BY DEFAULT · FLICKER ON'}
+        </button> :
+        <TuningInput keyName={k} value={values[k]} min={min} max={max} step={step}/>}
+
       </div>;
      })}</div>
     </section>)}

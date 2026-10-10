@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import MovementJoystick from '@/components/MovementJoystick';
@@ -45,6 +45,18 @@ type Enemy = {
 };
 const INITIAL_HUD: Hud = { health: 100, wave: 0, kills: 0, alive: 0, queued: 0, ammo: 12, reserve: 96, weapon: 'pistol', reloading: false, countdown: 0, over: false, ready: false, notice: 'LOADING THE CITY...', portal: false, hit: false, hurt: false, score:0, multiplier:1, combo:0, callout:'', pickupMessage:'' };
 const HUBSIDE_URL = 'https://preview--55efd0b1-9368-4172-9456-53db458ef667.aippy.live';
+/** Act on pointer DOWN, not click. Android WebView can suppress synthetic clicks
+ * from a second touch while the first finger owns MOVE's pointer capture.
+ * A mouse/keyboard can still activate these buttons with Enter/Space. */
+function activateGameplayButton(event:ReactPointerEvent<HTMLButtonElement>,action:()=>void){
+  if(event.pointerType==='mouse' && event.button!==0)return;
+  event.preventDefault();
+  event.stopPropagation();
+  action();
+}
+function keyboardGameplayButton(event:ReactMouseEvent<HTMLButtonElement>,action:()=>void){
+  if(event.detail===0)action();
+}
 const ASSET_BASE = import.meta.env.BASE_URL + 'assets/zombie-kit/';
 const REMOTE_ASSET_BASE = 'https://raw.githubusercontent.com/benryaus-cmd/zombie-game/513a481f60e5f6756d4c06233952587509e5ab8e/public/assets/zombie-kit/';
 async function loadZombieAsset(name: string, signal: AbortSignal): Promise<Model> {
@@ -204,7 +216,8 @@ class ZombieEngine {
   radarSnapshot():RadarFrame {
     return {px:this.world.playerPosition.x,pz:this.world.playerPosition.z,yaw:this.world.playerYaw,
       zombies:this.enemies.filter(e=>e.deadAt<=0).map(e=>({x:e.x,z:e.z})),
-      supplies:this.supplies.positions,buildings:this.world.colliders};
+      supplies:this.supplies.positions,buildings:this.world.colliders,
+      portal:{x:this.portal.position.x,z:this.portal.position.z}};
   }
   private giveSupply(kind:PickupType,amount:number) {
     this.tutorialActions.pickups++;
@@ -877,7 +890,10 @@ export default function ZombieGame() {
         <div className="zombie-kills">KILLS <strong>{hud.kills}</strong></div>
         <div className="zombie-score">SCORE <strong>{hud.score.toLocaleString()}</strong>
           {hud.multiplier>1 && <small>×{hud.multiplier} COMBO</small>}</div>
-        <button className="zombie-menu-button" onClick={pause} aria-label="Pause game">☰</button>
+        <button className="zombie-menu-button"
+          onPointerDown={event=>activateGameplayButton(event,pause)}
+          onClick={event=>keyboardGameplayButton(event,pause)}
+          aria-label="Pause game">☰</button>
       </header>
       {started && !paused && !hud.over && hud.pickupMessage && <div className="dc-pickup-pop">{hud.pickupMessage}</div>}
       {started && !paused && !hud.over && <div className="zombie-cross">
@@ -885,20 +901,27 @@ export default function ZombieGame() {
       {started && !paused && !hud.over && <div className={`zombie-reticle ${hud.hit ? 'hit' : ''}`} aria-hidden="true">+</div>}
       {started && !paused && !hud.over && <>
         <div className="zombie-controls"><MovementJoystick onMove={onMove} /></div>
-        <button className="zombie-jump" onPointerDown={e => { e.preventDefault(); engine.current?.jump(); }}>JUMP</button>
+        <button className="zombie-jump"
+          onPointerDown={event=>activateGameplayButton(event,()=>engine.current?.jump())}
+          onClick={event=>keyboardGameplayButton(event,()=>engine.current?.jump())}>JUMP</button>
         <div className="zombie-ammo">
-          <button className="zombie-weapon-cycle" onPointerDown={event => {
-            // Activate on the pointer itself, so weapon switching works even while a separate finger holds MOVE.
-            event.preventDefault();event.stopPropagation();engine.current?.cycleWeapon();
-          }} aria-label={`Change weapon. Currently ${hud.weapon}`}>
+          <button className="zombie-weapon-cycle"
+            onPointerDown={event=>activateGameplayButton(event,()=>engine.current?.cycleWeapon())}
+            onClick={event=>keyboardGameplayButton(event,()=>engine.current?.cycleWeapon())}
+            aria-label={`Change weapon. Currently ${hud.weapon}`}>
             <strong>{hud.weapon.toUpperCase()} ↻</strong>
             <span>{hud.reloading ? 'RELOADING…' : `${hud.ammo} / ${hud.reserve}`}</span>
 
           </button>
-          <button className="zombie-reload" onClick={() => engine.current?.reload()} aria-label="Reload weapon">RELOAD</button>
+          <button className="zombie-reload"
+            onPointerDown={event=>activateGameplayButton(event,()=>engine.current?.reload())}
+            onClick={event=>keyboardGameplayButton(event,()=>engine.current?.reload())}
+            aria-label="Reload weapon">RELOAD</button>
         </div>
         {!tutorialActive && hud.queued === 0 && hud.alive === 0 && <div className="zombie-next-wave">NEXT WAVE IN {Math.max(0, Math.ceil(hud.countdown))}</div>}
-        {hud.portal && <button className="zombie-portal-link" onClick={() => window.open(HUBSIDE_URL, '_blank', 'noopener,noreferrer')}>ENTER PORTAL · HUBSIDE ↗</button>}
+        {hud.portal && <button className="zombie-portal-link"
+          onPointerDown={event=>activateGameplayButton(event,()=>window.open(HUBSIDE_URL,'_blank','noopener,noreferrer'))}
+          onClick={event=>keyboardGameplayButton(event,()=>window.open(HUBSIDE_URL,'_blank','noopener,noreferrer'))}>ENTER PORTAL · HUBSIDE ↗</button>}
       </>}
       {tutorialActive && started && !hud.over && !radioActive &&
         <TutorialOverlay step={tutorialStep} complete={tutorialDone} paused={paused}

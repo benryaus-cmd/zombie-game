@@ -102,6 +102,7 @@ export const TUNING = {
   rifleStartingRounds: ['Rifle starting rounds','Map & Pickups',18,0,100,1],
   shotgunStartingRounds: ['Shotgun starting rounds','Map & Pickups',6,0,40,1],
   // Apocalyptic lighting: normally OFF; each lamp flashes ON independently.
+  warLampInvert: ['Lighting mode: OFF-first (0) / ON-first (1)','Lighting',0,0,1,1],
   warStreetFlicker: ['Streetlight failure intensity (0=steady OFF)','Lighting',1,0,3,0.1],
   warLampIdle: ['Streetlight OFF glow (0-1)','Lighting',0.09,0,1,0.005],
   warLampChance: ['Chance each lamp flashes ON','Lighting',0.68,0,1,0.02],

@@ -46,3 +46,13 @@ font:10px/1.3 monospace; padding:8px; user-select:text; touch-action:pan-y; resi
 .dc-debug-head button {font-size:9px;min-width:28px;padding:5px!important;white-space:nowrap;}
 .dc-debug-collapsed {width:max-content;max-width:min(96cqw,360px);max-height:50px;}
 .dc-debug-collapsed .dc-debug-head {border:0;gap:5px;}
+
+/* Temporary lighting inversion switch stays inside the removable LIVE panel. */
+.dc-debug-field .dc-lamp-mode {
+ width:100%;padding:8px 5px;border:1px solid #e29a54;border-radius:7px;
+ color:#ffd9a0;background:#3b281d;font-size:10px;font-weight:800;
+ white-space:normal;text-align:center;touch-action:manipulation;
+}
+.dc-debug-field .dc-lamp-mode[aria-pressed="true"] {
+ border-color:#9dceff;color:#e6f4ff;background:#234354;
+}
