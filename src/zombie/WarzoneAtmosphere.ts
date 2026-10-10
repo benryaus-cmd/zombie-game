@@ -47,9 +47,10 @@ export class WarzoneAtmosphere {
  private nextBattle=13;
  private battleBurst=0;
  private lastLampTick=0;
+ private nextFirePop=2.2;
  private shotTimer=0;
  private destroyed=false;
- constructor(private world:WorldEngine,private onSound:(name:'warShot'|'warBoom',pos:THREE.Vector3)=>void){
+ constructor(private world:WorldEngine,private onSound:(name:'warShot'|'warBoom'|'firePop',pos:THREE.Vector3)=>void){
    this.root.name='dead-city-warzone-atmosphere';world.scene.add(this.root);
    const nearby=world.colliders;
    for(let index=0;index<LOCATIONS.length;index++){
@@ -121,6 +122,11 @@ export class WarzoneAtmosphere {
      }
    }
    closest.sort((a,b)=>a.distance-b.distance);
+   if(closest.length && this.clock>=this.nextFirePop && t.warFireSoundVolume>.01){
+     this.nextFirePop=this.clock+1.2+Math.random()*2.8;
+     // A tiny verified CC0 crackle beside an actual nearby fire, not an arcade chime.
+     this.onSound('firePop',closest[0].pos.clone().add(new THREE.Vector3(0,1,0)));
+   }
    for(let i=0;i<this.lights.length;i++){
      const light=this.lights[i],near=closest[i];
      light.intensity=near?t.warFireLight*(.84+.13*Math.sin(this.clock*12+i*1.7)):0;

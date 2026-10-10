@@ -73,3 +73,15 @@ locally stored rifle samples, lowered in pitch and mixed quietly, instead of new
 
 The new impact sounds replace the *playback mapping* for cheerful combo stingers.
 Original combo files remain on disk for rollback and are not requested for the new stingers.
+
+## Warzone fire crackle (CC0)
+
+`war-fire-crackle.ogg` copied unchanged from
+`tapiwamakandigona/emberdelve/assets/audio/sfx/ember_gain.ogg`.
+That file's provenance specifies a 0.15–0.75 second extract from
+AntumDeluge's **Fire Crackling** (`fire-1.wav`), licensed CC0:
+https://opengameart.org/content/fire-crackling
+https://github.com/tapiwamakandigona/emberdelve/blob/main/PROVENANCE.md
+
+It is a short, randomly triggered, spatial crackle and NOT the other
+`ember_ambience_loop.ogg`, which originates from CC-BY music and was not used.

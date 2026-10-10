@@ -21,8 +21,8 @@ test('23 CC0 audio assets are present and have valid RIFF/WAVE or OGG headers',(
    'reload.ogg','reload-rifle.ogg','reload-shotgun.ogg',
    'empty-click.ogg','bullet-impact-0.ogg','bullet-impact-1.ogg'
  ];
- soundNames.push('combo-up.ogg','combo-hit.ogg','combo-big.ogg','war-stinger-0.ogg','war-stinger-1.ogg','war-stinger-2.ogg','war-explosion.wav');
- assert.equal(soundNames.length,32);
+ soundNames.push('combo-up.ogg','combo-hit.ogg','combo-big.ogg','war-stinger-0.ogg','war-stinger-1.ogg','war-stinger-2.ogg','war-explosion.wav','war-fire-crackle.ogg');
+ assert.equal(soundNames.length,33);
  for(const name of soundNames){
    const bytes=fs.readFileSync('public/audio/sfx/'+name);
    assert.ok(bytes.length>100,name+' must not be empty');

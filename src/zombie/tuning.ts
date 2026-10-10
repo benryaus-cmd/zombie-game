@@ -112,6 +112,7 @@ export const TUNING = {
   warEventsEnabled: ['Distant battles enabled (1=yes)','Warzone',1,0,1,1],
   warAmbienceVolume: ['Background battle sound level','Audio',.45,0,2,.05],
   warWindVolume: ['Low rumbling wind level','Audio',.45,0,2,.05],
+  warFireSoundVolume: ['Fire crackling sound level','Audio',.65,0,2,.05],
   hitHapticFirst: ['Zombie hit: first vibration (ms)','Effects',45,0,250,5],
   hitHapticPause: ['Zombie hit: pause (ms)','Effects',20,0,100,5],
   hitHapticSecond: ['Zombie hit: second vibration (ms)','Effects',65,0,300,5],
