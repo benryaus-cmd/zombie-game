@@ -93,6 +93,14 @@ export const TUNING = {
   stumpBleedInterval: ['Stump blood pulse interval (s)','Effects',.2,.06,1,.02],
   stumpBleedStrength: ['Stump blood spray size','Effects',1.4,0,8,.2],
   comboVolume: ['Multiplier stinger volume','Audio',.55,0,2,.05],
+  // Navigation, supplies and radar
+  zombieSpacing: ['Minimum zombie spacing (m)','Zombies',1.05,.6,2.5,.05],
+  navInterval: ['Path refresh interval (s)','Zombies',.9,.3,3,.1],
+  radarRange: ['Radar radius (m)','Map & Pickups',32,10,90,1],
+  pickupCap: ['Active pickups','Map & Pickups',12,3,22,1],
+  pickupGuideOpacity: ['Pickup guide brightness','Map & Pickups',.17,0,.7,.01],
+  rifleStartingRounds: ['Rifle starting rounds','Map & Pickups',18,0,100,1],
+  shotgunStartingRounds: ['Shotgun starting rounds','Map & Pickups',6,0,40,1],
   // Scoring
   killPoints: ['Base points per kill','Score',100,1,2000,10],
   comboWindow: ['Quick-kill window (s)','Score',4,.3,15,.25],

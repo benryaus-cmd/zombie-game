@@ -4,7 +4,7 @@ import { getTuning } from './tuning';
 /** One reusable particle buffer and one instanced blood-decal draw call for the entire horde. */
 const DROPLETS = 360;
 const STAINS = 140;
-type Drop = { life: number; velocity: THREE.Vector3 };
+type Drop = { life: number; velocity: THREE.Vector3; floor: number };
 export class BloodEffects {
   private readonly positions = new Float32Array(DROPLETS * 3);
   private readonly colours = new Float32Array(DROPLETS * 3);
@@ -42,7 +42,7 @@ export class BloodEffects {
     const geometry = new THREE.BufferGeometry();
     for (let i = 0; i < DROPLETS; i++) {
       this.positions[i * 3 + 1] = -10000;
-      this.drops.push({ life: 0, velocity: new THREE.Vector3() });
+      this.drops.push({ life: 0, velocity: new THREE.Vector3(),floor:0 });
     }
     geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3).setUsage(THREE.DynamicDrawUsage));
     geometry.setAttribute('color', new THREE.BufferAttribute(this.colours, 3));
@@ -86,6 +86,7 @@ export class BloodEffects {
         heading.z * speed + (Math.random() - .5) * 4,
       );
       this.drops[i].life = .35 + Math.random() * .75;
+      this.drops[i].floor = floorY;
       // Infected blood: predominantly deep crimson, with rare dark/green flecks.
       const fleck = Math.random(), shade = Math.random();
       if (fleck < .085) { // clot-like black specks
@@ -128,7 +129,7 @@ export class BloodEffects {
     this.decals.instanceMatrix.needsUpdate = true;
   }
 
-  update(dt: number, floorHeight: (x: number, z: number) => number) {
+  update(dt: number) {
     this.clock += dt;
     (this.points.material as THREE.PointsMaterial).size=getTuning().bloodSize;
     let changed = false;
@@ -142,7 +143,7 @@ export class BloodEffects {
       this.positions[p + 2] += drop.velocity.z * dt;
       drop.velocity.y -= 12 * dt;
       drop.life -= dt;
-      if (drop.life <= 0 || this.positions[p + 1] <= floorHeight(this.positions[p], this.positions[p + 2]) + .055) {
+      if (drop.life <= 0 || this.positions[p + 1] <= drop.floor + .055) {
         drop.life = 0;
         this.positions[p + 1] = -10000;
       }

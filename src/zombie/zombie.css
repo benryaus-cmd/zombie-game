@@ -152,3 +152,36 @@
  .zombie-menu-button { grid-column:4;grid-row:1; }
  .zombie-kills { grid-column:3/5; grid-row:2;justify-self:end; }
 }
+
+/* Compact, heading-up city radar and live MetalFM stream control. */
+.dc-radar {position:absolute; left:12px; top:124px; width:114px; height:114px;
+ z-index:16; pointer-events:none; border-radius:50%; box-shadow:0 3px 16px #0009;
+ background:#091719b8; }
+.zombie-hud .dc-radio-mini {position:absolute;left:13px;top:244px;z-index:18;
+ background:#182027ea;border-color:#718e88;color:#e4bca3;font-size:10px;padding:7px 9px;
+ min-width:113px;text-align:center;box-shadow:0 2px 10px #0009; }
+.dc-radio-overlay {position:absolute; inset:0;z-index:80;display:grid;place-items:center;
+ background:#031118b8;pointer-events:auto;padding:12px;}
+.dc-radio-dialog {display:grid;gap:12px;max-width:360px;width:94%;
+ border:1px solid #7e9096;border-radius:13px;background:#10232df7;padding:23px;box-shadow:0 8px 35px #0008;
+ text-align:center;}
+.dc-radio-dialog h2{margin:0;color:#ffb48b;letter-spacing:.14em;font-size:24px;}
+.dc-radio-dialog p{margin:0;color:#ced9d9;font-size:12px;}
+.dc-radio-actions{display:flex;gap:12px;justify-content:center;}
+.dc-radio-actions button{min-width:100px;}
+.dc-radio-actions button[aria-pressed="true"]{border-color:#ffad77;background:#853c21;}
+.dc-radio-dialog label{color:#e2efe6;font-size:12px;}
+.dc-radio-dialog input{width:100%;height:30px;accent-color:#ffa45d;touch-action:pan-x;}
+.dc-radio-dialog .dc-radio-error{color:#ff9675;}
+.dc-radio-close{min-height:46px;}
+.dc-pickup-pop{position:absolute;top:29%;left:50%;transform:translateX(-50%);
+ z-index:20;pointer-events:none;color:#ffe98b;font-size:17px;text-align:center;
+ font-weight:950;text-shadow:1px 2px 4px #000c;white-space:nowrap;}
+@container game (max-aspect-ratio:1/1){
+ .dc-radar{left:11px;top:184px;width:126px;height:126px;}
+ .zombie-hud .dc-radio-mini{left:12px;top:318px;min-width:125px;}
+}
+@container game (max-height:530px){
+ .dc-radar{top:67px;width:88px;height:88px;}
+ .zombie-hud .dc-radio-mini{top:162px;min-width:90px;font-size:9px;padding:4px;}
+}
