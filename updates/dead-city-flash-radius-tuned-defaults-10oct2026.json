@@ -1,0 +1,23 @@
+{
+  "version": "dead-city-flash-radius-tuned-defaults-10oct2026",
+  "type": "incremental",
+  "repository": "benryaus-cmd/zombie-game",
+  "commit": "b483e23a47b9e81ecae4fe674691c6598e787cc8",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/b483e23a47b9e81ecae4fe674691c6598e787cc8/",
+  "fileCount": 3,
+  "description": "Apply owner's preferred Dead City settings: invert lighting ON-first; flicker intensity 1.5; idle glow 0; flash chance .4; brightness 1.5; light range multiplier .25; warmth .25; rain radius 5m. Add warLampFlashDistance=8m live setting: streetlight bulbs, ground pools and actual point lights cannot flicker unless player's horizontal distance from source <= configured radius; distant explosion sprites/tracers remain visible but explosion world illumination is suppressed unless within radius. All other tuning defaults, gameplay, saves, HubSide portal and Metal FM 10% default preserved.",
+  "files": [
+    {
+      "source": "src/zombie/tuning.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/tuning.ts"
+    },
+    {
+      "source": "src/game/cityAtmosphere.ts",
+      "target": "src/games/importedGame/upstream/src/game/cityAtmosphere.ts"
+    },
+    {
+      "source": "src/zombie/WarzoneAtmosphere.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/WarzoneAtmosphere.ts"
+    }
+  ]
+}
