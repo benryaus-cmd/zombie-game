@@ -4,7 +4,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 const directory=await mkdtemp(path.join(process.cwd(),'.dead-city-tests-'));
 try {
- const names=['assets','combat','controls','parts','score','tracers','navigation'];
+ const names=['assets','combat','controls','parts','score','tracers','navigation','warzone'];
  for(const name of names) {
    await build({configFile:false,root:process.cwd(),logLevel:'error',
      build:{outDir:directory,emptyOutDir:false,minify:false,target:'esnext',

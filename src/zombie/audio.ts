@@ -73,8 +73,10 @@ export class ZombieAudio {
  private readonly cooldowns=new Map<string,number>();
  private listenerPosition=new THREE.Vector3();
  private disposed=false;
+ private paused=false;
  private lastClip=new Map<string,string>();
 
+ setPaused(state:boolean){this.paused=state;this.update();}
  unlock() {
   if(this.disposed)return;
   if(!this.context) {
@@ -134,7 +136,7 @@ export class ZombieAudio {
   if(this.weaponBus)this.weaponBus.gain.value=t.weaponVolume;
   if(this.zombieBus)this.zombieBus.gain.value=t.zombieVolume;
   if(this.uiBus)this.uiBus.gain.value=t.uiVolume;
-  if(this.ambientBus)this.ambientBus.gain.value=t.warAmbienceVolume;
+  if(this.ambientBus)this.ambientBus.gain.value=this.paused?0:1;
   if(this.windGain)this.windGain.gain.value=t.warWindVolume*.035;
   const l=ctx.listener,p=this.listenerPosition,f=forward||new THREE.Vector3(0,0,-1);
   if(l.positionX){l.positionX.value=p.x;l.positionY.value=p.y;l.positionZ.value=p.z;}
@@ -152,7 +154,12 @@ export class ZombieAudio {
   const key=gateKey||event;
   const minGap=category==='zombie'?t.zombieMinGap:event==='empty'?.11:event==='warShot'?.09:event==='warBoom'?3:event==='firePop'?.7:event.startsWith('combo')?.55:0;
   if(now-(this.cooldowns.get(key)||-100)<minGap)return;
-  if(category==='zombie'){
+  if(category==='ambient'&&this.paused)return;
+   if(category==='ambient'&&pos){
+     const distance=pos.distanceTo(this.listenerPosition);
+     if(distance>(event==='firePop'?26:event==='warShot'?150:180))return;
+   }
+   if(category==='zombie'){
    const distance=pos?.distanceTo(this.listenerPosition)||0;
    if(distance>t.zombieAudibleDistance)return;
    const voices=Array.from(this.playing).filter(p=>p.category==='zombie').length;
@@ -167,15 +174,19 @@ export class ZombieAudio {
   if(!buffer){void this.load(candidate);return;}
   try{
    const source=ctx.createBufferSource();source.buffer=buffer;
-   source.playbackRate.value=(event==='warShot'?.68:event==='warBoom'?.84:1)+(Math.random()-.5)*2*(category==='zombie'?t.zombiePitchVariation:category==='ambient'?.045:t.gunPitchVariation);
+   source.playbackRate.value=(event==='warShot'?.91:event==='warBoom'?.84:1)+(Math.random()-.5)*2*(category==='zombie'?t.zombiePitchVariation:category==='ambient'?.045:t.gunPitchVariation);
    const gain=ctx.createGain();
-   gain.gain.value=category==='zombie'?.7:event==='warShot'?.14:event==='warBoom'?.32:event==='firePop'?t.warFireSoundVolume*.65:event.startsWith('combo')?t.comboVolume:1;
+   gain.gain.value=category==='zombie'?.7:
+    event==='warShot'?.4*t.warAmbienceVolume:
+    event==='warBoom'?.38*t.warExplosionVolume:
+    event==='firePop'?.65*t.warFireSoundVolume:
+    event.startsWith('combo')?t.comboVolume:1;
    source.connect(gain);
    if((category==='zombie'||category==='ambient')&&pos){
     const pan=ctx.createPanner();pan.panningModel='HRTF';pan.distanceModel='inverse';
-    pan.refDistance=event==='firePop'?4:category==='ambient'?16:Math.max(1,t.zombieRefDistance);
-    pan.maxDistance=event==='firePop'?26:category==='ambient'?120:t.zombieAudibleDistance;
-    pan.rolloffFactor=event==='firePop'?1.4:category==='ambient'?.7:t.zombieRolloff;
+    pan.refDistance=event==='firePop'?4:event==='warShot'?24:event==='warBoom'?30:Math.max(1,t.zombieRefDistance);
+    pan.maxDistance=event==='firePop'?26:event==='warShot'?150:event==='warBoom'?180:t.zombieAudibleDistance;
+    pan.rolloffFactor=event==='firePop'?1.4:event==='warShot'?.35:event==='warBoom'?.5:t.zombieRolloff;
     pan.positionX.value=pos.x;pan.positionY.value=pos.y;pan.positionZ.value=pos.z;
     gain.connect(pan);pan.connect(category==='ambient'?this.ambientBus!:this.zombieBus!);
     source.onended=()=>{this.playing.delete(token);source.disconnect();gain.disconnect();pan.disconnect()};

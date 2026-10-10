@@ -17,7 +17,7 @@ import { shareSkeletons, bodySpheres, detachRegion, updateDebris, disposeDebris,
 import { ZombieAudio } from './audio';
 import { BloodEffects } from './bloodEffects';
 import { ShotTrails, tracerToReticle } from './shotTrails';
-import { routeStreet, nearbyBuildings, stepSeparated, reachableSpawnArea } from './navigation';
+import { planStreetPath, nearbyBuildings, stepSeparated, reachableSpawnArea } from './navigation';
 import { isInsideBuilding } from '@/game/morningQuarterLayout';
 import { WarzoneAtmosphere } from './WarzoneAtmosphere';
 import type { Collider } from './combat';
@@ -37,6 +37,7 @@ type Hud = {
 type Enemy = {
   root: THREE.Group; mixer: THREE.AnimationMixer | null; action: THREE.AnimationAction | null;
   model: Model | null; missing: Set<Region>; anim: string; reactUntil: number; waypoint: THREE.Vector2 | null; routeAt: number;
+   path: {x:number;z:number}[]; pathGoalX:number; pathGoalZ:number; colliderCount:number; progressDistance:number;
   x: number; z: number; hp: number; speed: number; hitAt: number; deadAt: number; baseVisualY:number; nextVocalAt:number; bleedUntil:number; nextBleedAt:number; blockers:Collider[]; stuckFor:number; lastRouteX:number; lastRouteZ:number;
 };
 const INITIAL_HUD: Hud = { health: 100, wave: 0, kills: 0, alive: 0, queued: 0, ammo: 12, reserve: 96, weapon: 'pistol', reloading: false, countdown: 0, over: false, ready: false, notice: 'LOADING THE CITY...', portal: false, hit: false, hurt: false, score:0, multiplier:1, combo:0, callout:'', pickupMessage:'' };
@@ -275,7 +276,7 @@ class ZombieEngine {
     const list: Weapon[] = ['pistol', 'rifle', 'shotgun'];
     this.equip(list[(list.indexOf(this.weapon) + 1) % list.length]);
   }
-  setPaused(value: boolean) { this.paused = value; this.clearInputs();if(!value)this.audio.unlock(); this.emitHud(); }
+  setPaused(value: boolean) { this.paused = value;this.audio.setPaused(value);this.clearInputs();if(!value)this.audio.unlock(); this.emitHud(); }
 
   clearInputs() { this.firing = false; this.keys.clear(); this.move({ x: 0, y: 0 }); this.look({ x: 0, y: 0 }); }
 
@@ -428,7 +429,8 @@ class ZombieEngine {
       if (clip) { action = mixer.clipAction(clip); action.play(); }
     }
     this.enemies.push({ root: body, model, mixer, action, anim: 'Run_Arms', missing: new Set(), reactUntil: 0, waypoint: null, routeAt: 0, x, z, hp: model === this.variants[1] ? getTuning().heavyZombieHP : getTuning().baseZombieHP + Math.min(60,this.wave*4),
-      speed: getTuning().zombieSpeed + this.wave * getTuning().speedPerWave + Math.random() * .35, hitAt: 0, deadAt: 0, baseVisualY:visual.position.y, nextVocalAt:this.elapsed+2+Math.random()*6, bleedUntil:0, nextBleedAt:0, blockers:[],stuckFor:0,lastRouteX:x,lastRouteZ:z });
+      speed: getTuning().zombieSpeed + this.wave * getTuning().speedPerWave + Math.random() * .35, hitAt: 0, deadAt: 0, baseVisualY:visual.position.y, nextVocalAt:this.elapsed+2+Math.random()*6, bleedUntil:0, nextBleedAt:0, blockers:[],stuckFor:0,lastRouteX:x,lastRouteZ:z,
+       path:[],pathGoalX:px,pathGoalZ:pz,colliderCount:0,progressDistance:Infinity });
     this.audio.play('alert',new THREE.Vector3(x,body.position.y+1,z),'alert-'+body.id);
     this.queued--;
   }
@@ -485,26 +487,38 @@ class ZombieEngine {
     const dx = px - enemy.x, dz = pz - enemy.z, length = Math.hypot(dx, dz);
     enemy.root.rotation.y = Math.atan2(dx, dz);
     if (length > 1.15) {
-      const stale=now>=enemy.routeAt || !enemy.waypoint ||
-        enemy.waypoint.distanceTo(new THREE.Vector2(enemy.x,enemy.z))<.65 ||
-        enemy.stuckFor>.35;
-      if(stale && this.routeBudget>0){
-        this.routeBudget--;
-        // Refresh only every ~0.9s, not every animation frame. Bounded local
-        // search navigates buildings; neighbour separation prevents a dogpile.
-        enemy.blockers=nearbyBuildings(enemy.x,enemy.z,this.world.colliders,30);
-        const way=routeStreet({x:enemy.x,z:enemy.z},{x:px,z:pz},enemy.blockers,.49);
-        enemy.waypoint=new THREE.Vector2(way.x,way.z);
-        enemy.routeAt=now+t.navInterval+Math.random()*.22;
-        enemy.stuckFor=0;
+      // Follow the ENTIRE stable-grid path. Replanning every second previously
+      // flipped west/east at walls without ever completing a detour.
+      while(enemy.path.length && Math.hypot(enemy.path[0].x-enemy.x,enemy.path[0].z-enemy.z)<.64){
+        enemy.path.shift();enemy.progressDistance=Infinity;enemy.stuckFor=0;
       }
+      const goalMoved=Math.hypot(px-enemy.pathGoalX,pz-enemy.pathGoalZ)>4;
+      const collidersChanged=enemy.colliderCount!==this.world.colliders.length;
+      const needsPlan= !enemy.path.length || goalMoved || collidersChanged || enemy.stuckFor>1.6;
+      if(needsPlan && this.routeBudget>0 && now>=enemy.routeAt){
+        this.routeBudget--;
+        // Account for the actual loaded world. A new chunk invalidates paths.
+        enemy.blockers=nearbyBuildings((enemy.x+px)/2,(enemy.z+pz)/2,this.world.colliders,
+          Math.max(28,Math.hypot(px-enemy.x,pz-enemy.z)/2+22));
+        enemy.path=planStreetPath({x:enemy.x,z:enemy.z},{x:px,z:pz},enemy.blockers,.49);
+        enemy.colliderCount=this.world.colliders.length;
+        enemy.pathGoalX=px;enemy.pathGoalZ=pz;
+        enemy.routeAt=now+Math.max(.35,t.navInterval)*.6;
+        enemy.progressDistance=Infinity;enemy.stuckFor=0;
+      }
+      const target=enemy.path[0];
       const speed=enemy.speed*(crawling?t.crawlSpeed:hopping?t.hopSpeed:now<enemy.reactUntil?.25:1);
       const neighbours=this.enemies.filter(other=>other!==enemy&&other.deadAt<=0).map(other=>({x:other.x,z:other.z}));
-      const newPos=stepSeparated({x:enemy.x,z:enemy.z},{x:enemy.waypoint?.x ?? px,z:enemy.waypoint?.y ?? pz},
-        neighbours,enemy.blockers,Math.min(.12,delta*speed),.47,t.zombieSpacing);
-      const travelled=Math.hypot(newPos.x-enemy.x,newPos.z-enemy.z);
-      enemy.stuckFor=travelled<.006?enemy.stuckFor+delta:0;
-      if(travelled>0){enemy.x=newPos.x;enemy.z=newPos.z;}
+      const before=target?Math.hypot(target.x-enemy.x,target.z-enemy.z):Infinity;
+      // If no valid detour exists, do not walk straight through the obstructing wall.
+      const newPos=target?stepSeparated({x:enemy.x,z:enemy.z},target,
+        neighbours,enemy.blockers,Math.min(.12,delta*speed),.47,t.zombieSpacing):{x:enemy.x,z:enemy.z};
+      const after=target?Math.hypot(target.x-newPos.x,target.z-newPos.z):Infinity;
+      if(after<enemy.progressDistance-.25){
+        enemy.progressDistance=after;enemy.stuckFor=0;
+      }else enemy.stuckFor+=delta;
+      if(after+1e-4<before){enemy.x=newPos.x;enemy.z=newPos.z;}
+      else if(target && !neighbours.length){enemy.stuckFor+=delta;}
     } else if (now - enemy.hitAt > t.attackInterval && Math.abs(this.world.playerPosition.y - enemy.root.position.y - 1.72) < 1.1 &&
       wallDistance(new THREE.Ray(new THREE.Vector3(enemy.x,enemy.root.position.y+1,enemy.z),new THREE.Vector3(dx,0,dz).normalize()),this.world.colliders) > length) {
       enemy.hitAt = now;
@@ -580,7 +594,7 @@ class ZombieEngine {
       this.trails.update(dt);
       this.audio.update(this.world.playerPosition,this.world.camera.getWorldDirection(new THREE.Vector3()));
       this.supplies.update(dt);
-      this.warzone.update(dt,this.world.playerPosition);
+      this.warzone.update(dt,this.world.playerPosition,this.world.camera);
       this.enemies = this.enemies.filter(e => this.updateEnemy(e, dt, now));
       const alive = this.enemies.filter(e => e.deadAt <= 0).length;
       if (this.queued > 0 && alive < getTuning().zombieCap) {
@@ -639,7 +653,7 @@ class ZombieEngine {
     this.reloadTimer = 0; this.weapon = 'pistol'; this.notice = 'SURVIVE THE WAVES';
     this.world.playerPosition.set(0, 1.72, 5);
     this.supplies.clear();
-    this.warzone.reset();this.lastHitVibrate=-100;
+    this.warzone.reset();this.audio.setPaused(false);this.lastHitVibrate=-100;
     this.world.velocityY = 0;
     this.equip('pistol');
     this.emitHud();

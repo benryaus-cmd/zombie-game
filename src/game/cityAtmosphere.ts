@@ -18,9 +18,40 @@ export class CityAtmosphere {
   readonly playerLight=new THREE.PointLight('#ffead0',0,10,2);
   private poles:THREE.InstancedMesh;private heads:THREE.InstancedMesh;private bulbs:THREE.InstancedMesh;private pools:THREE.InstancedMesh;
   private extra:THREE.Vector3[]=[];private signature='';private nextUpdate=0;
+  private bulbSites:THREE.Vector3[]=[];private bulbBases:number[]=[];
+  private poolSites:THREE.Vector3[]=[];private poolBases:number[]=[];
+  private flickerAt=-1;
+  private static flicker(x:number,z:number,time:number,strength:number){
+    if(strength<=0)return 1;
+    const seed=Math.abs(Math.sin(x*12.9898+z*78.233));
+    if(seed>Math.min(.68,strength*.28))return 1;
+    const fail=Math.sin(time*.41+seed*37)> .94;
+    const strobe=Math.sin(time*(8+seed*19)+seed*21)>.63;
+    return fail?.08:strobe?.22:1;
+  }
+  private updateFlicker(time:number,strength:number){
+    if(time-this.flickerAt<.09 && strength>0)return;
+    this.flickerAt=time;
+    const bulbs=this.bulbs.geometry.getAttribute('lampFade') as THREE.InstancedBufferAttribute;
+    const pools=this.pools.geometry.getAttribute('lampFade') as THREE.InstancedBufferAttribute;
+    for(let i=0;i<this.bulbSites.length;i++){
+      const p=this.bulbSites[i];
+      bulbs.setX(i,this.bulbBases[i]*CityAtmosphere.flicker(p.x,p.z,time,strength));
+    }
+    for(let i=0;i<this.poolSites.length;i++){
+      const p=this.poolSites[i];
+      pools.setX(i,this.poolBases[i]*CityAtmosphere.flicker(p.x,p.z,time,strength));
+    }
+    bulbs.needsUpdate=true;pools.needsUpdate=true;
+    for(const light of this.lights){
+      const base=(light.userData.deadCityBaseIntensity as number|undefined)??0;
+      light.intensity=base*CityAtmosphere.flicker(light.position.x,light.position.z,time,strength);
+    }
+  }
   readonly stats={lamps:0,realLights:0,groundReach:0};
   constructor(private scene:THREE.Scene,private layout?:readonly [number,number][]){
     this.root.name='city-atmosphere';scene.add(this.root);scene.userData.cityAtmosphereStats=this.stats;
+    scene.userData.deadCityFlickerTick=(seconds:number,strength:number)=>this.updateFlicker(seconds,strength);
     this.ground=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshStandardMaterial({color:'#8b8982',roughness:1}));
     this.ground.name='city-ground-extension';this.ground.rotation.x=-Math.PI/2;this.ground.position.y=-.055;this.ground.frustumCulled=false;this.root.add(this.ground);
     this.poles=new THREE.InstancedMesh(new THREE.CylinderGeometry(.11,.16,5.4,5),new THREE.MeshStandardMaterial({color:'#77796e',roughness:1}),128);
@@ -44,14 +75,16 @@ export class CityAtmosphere {
     const detailReach=settings.heightLod?Math.max(settings.shortDetailDistance,settings.tallDetailDistance):settings.detailDistance;
     const limit=Math.max(settings.lampActivationDistance,Math.min(detailReach,fogVisualDistance(settings,camera)));
     if(changed||now>=this.nextUpdate){
-      this.signature=signature;this.nextUpdate=now+200;this.extra=[];const matrix=new THREE.Matrix4(),rotation=new THREE.Quaternion();let i=0;
+      this.signature=signature;this.nextUpdate=now+200;this.extra=[];this.bulbSites=[];this.bulbBases=[];const matrix=new THREE.Matrix4(),rotation=new THREE.Quaternion();let i=0;
       const positions=this.layout??Array.from({length:9},(_,k)=>[cx+Math.floor(k/3)-1,cz+k%3-1]).flatMap(([bx,bz])=>[[-8,0],[8,0],[0,-8],[0,8]].map(([ox,oz])=>[bx*48+ox,bz*48+oz]));
       for(const [px,pz] of positions.slice(0,128)){
         const distance=Math.hypot(px-x,pz-z),visible=distance<=limit,scale=visible?1:0;
         matrix.compose(new THREE.Vector3(px,2.7,pz),rotation,new THREE.Vector3(scale,scale,scale));this.poles.setMatrixAt(i,matrix);
         matrix.compose(new THREE.Vector3(px,5.4,pz),rotation,new THREE.Vector3(scale,scale,scale));this.heads.setMatrixAt(i,matrix);
         matrix.compose(new THREE.Vector3(px,5.3,pz),new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2),new THREE.Vector3(scale,scale,scale));this.bulbs.setMatrixAt(i,matrix);
-        (this.bulbs.geometry.getAttribute('lampFade') as THREE.InstancedBufferAttribute).setX(i,lampActivation(distance,settings));
+        const base=lampActivation(distance,settings);
+        (this.bulbs.geometry.getAttribute('lampFade') as THREE.InstancedBufferAttribute).setX(i,base);
+        this.bulbSites.push(new THREE.Vector3(px,5.3,pz));this.bulbBases.push(base);
         if(visible)this.extra.push(new THREE.Vector3(px,5.25,pz));i++;
       }
       for(const mesh of [this.poles,this.heads,this.bulbs]){mesh.count=i;mesh.instanceMatrix.needsUpdate=true;}
@@ -62,7 +95,14 @@ export class CityAtmosphere {
     for(const anchor of anchors)anchor.bulbMaterial.emissiveIntensity=settings.streetLights?2.8*lampActivation(Math.hypot(anchor.position.x-x,anchor.position.z-z),settings):0;
     const matrix=new THREE.Matrix4(),rotation=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2);
     this.pools.count=Math.min(128,positions.length);
-    positions.slice(0,128).forEach((p,i)=>{matrix.compose(new THREE.Vector3(p.x,this.layout?.02:.016,p.z),rotation,new THREE.Vector3(settings.lampRadius*2,settings.lampRadius*2,1));this.pools.setMatrixAt(i,matrix);(this.pools.geometry.getAttribute('lampFade') as THREE.InstancedBufferAttribute).setX(i,lampActivation(Math.hypot(p.x-x,p.z-z),settings));});
+    this.poolSites=[];this.poolBases=[];
+    positions.slice(0,128).forEach((p,i)=>{
+      matrix.compose(new THREE.Vector3(p.x,this.layout?.02:.016,p.z),rotation,new THREE.Vector3(settings.lampRadius*2,settings.lampRadius*2,1));
+      this.pools.setMatrixAt(i,matrix);
+      const base=lampActivation(Math.hypot(p.x-x,p.z-z),settings);
+      (this.pools.geometry.getAttribute('lampFade') as THREE.InstancedBufferAttribute).setX(i,base);
+      this.poolSites.push(p);this.poolBases.push(base);
+    });
     this.pools.instanceMatrix.needsUpdate=true;(this.pools.geometry.getAttribute('lampFade') as THREE.InstancedBufferAttribute).needsUpdate=true;
     positions.sort((a,b)=>(a.x-x)**2+(a.z-z)**2-(b.x-x)**2-(b.z-z)**2);
     // Grow only as requested and needed; reuse inactive slots when the count falls.
@@ -73,10 +113,12 @@ export class CityAtmosphere {
     let real=0;
     this.lights.forEach((light,i)=>{const p=candidates[i];light.visible=i<count;light.distance=settings.lampDistance;
       light.intensity=light.visible?settings.lampIntensity*lampActivation(Math.hypot(p.x-x,p.z-z),settings):0;
+      light.userData.deadCityBaseIntensity=light.intensity;
       if(light.visible)light.position.copy(p);if(light.visible&&light.intensity)real++;
     });
     this.playerLight.visible=settings.playerLight;this.playerLight.intensity=settings.playerLightIntensity;this.playerLight.position.set(x,playerY+.5,z);
     this.stats.lamps=positions.length;this.stats.realLights=real+Number(settings.playerLight);
+    this.updateFlicker(now/1000,(this.scene.userData.deadCityFlickerStrength as number|undefined)??0);
   }
-  dispose(){this.root.traverse(object=>{if(!(object instanceof THREE.Mesh))return;if(object instanceof THREE.InstancedMesh)object.dispose();object.geometry.dispose();const materials=Array.isArray(object.material)?object.material:[object.material];materials.forEach(material=>material.dispose());});this.root.removeFromParent();for(const light of [...this.lights,this.playerLight])light.removeFromParent();delete this.scene.userData.cityAtmosphereStats;}
+  dispose(){this.root.traverse(object=>{if(!(object instanceof THREE.Mesh))return;if(object instanceof THREE.InstancedMesh)object.dispose();object.geometry.dispose();const materials=Array.isArray(object.material)?object.material:[object.material];materials.forEach(material=>material.dispose());});this.root.removeFromParent();for(const light of [...this.lights,this.playerLight])light.removeFromParent();delete this.scene.userData.cityAtmosphereStats;delete this.scene.userData.deadCityFlickerTick;}
 }

@@ -13,65 +13,109 @@ export function freeAt(x:number,z:number,buildings:readonly Collider[],radius=.4
 export function nearbyBuildings(x:number,z:number,colliders:readonly Collider[],extent=29) {
   return colliders.filter(b=>b.maxX>x-extent&&b.minX<x+extent&&b.maxZ>z-extent&&b.minZ<z+extent&&b.maxY>.42&&b.minY<2.1);
 }
-export function routeStreet(start:Flat,goal:Flat,colliders:readonly Collider[],radius=.52):Flat {
-  const close=nearbyBuildings(start.x,start.z,colliders,24);
-  // Try direct route first; a ray point check avoids the old one-rectangle
-  // shortest-path algorithm looping at building intersections.
-  const deltaX=goal.x-start.x,deltaZ=goal.z-start.z,dist=Math.hypot(deltaX,deltaZ);
-  if(dist<.01)return goal;
-  const maxDirect=Math.min(dist,15), probes=Math.max(2,Math.ceil(maxDirect/.8));
-  let clear=true;
-  for(let i=1;i<=probes;i++){
-    const ratio=(i/probes)*maxDirect/dist;
-    if(!freeAt(start.x+deltaX*ratio,start.z+deltaZ*ratio,close,radius)){clear=false;break;}
+/** Segment safety checks are against real colliders, NOT the nav grid.
+ * Use the same clearance for routing and stepSeparated. */
+export function pathClear(a:Flat,b:Flat,colliders:readonly Collider[],radius=.49) {
+ const dist=Math.hypot(b.x-a.x,b.z-a.z);
+ for(let n=0;n<=Math.ceil(dist/.55);n++) {
+  const t=n/Math.max(1,Math.ceil(dist/.55));
+  if(!freeAt(a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t,colliders,radius))return false;
+ }
+ return true;
+}
+/** Stable WORLD-ALIGNED street route, preserving a complete detour until reached.
+ * The old 1.65m grid followed the moving enemy and flipped east/west at wall edges.
+ * Bounding-box A* with a binary heap keeps the expanded search affordable. */
+export function planStreetPath(start:Flat,goal:Flat,colliders:readonly Collider[],radius=.49):Flat[] {
+ if(pathClear(start,goal,colliders,radius))return [{x:goal.x,z:goal.z}];
+ const cell=1.15,margin=18;
+ const xmin=Math.ceil(Math.max(-67.5,Math.min(start.x,goal.x)-margin)/cell);
+ const xmax=Math.floor(Math.min(67.5,Math.max(start.x,goal.x)+margin)/cell);
+ const zmin=Math.ceil(Math.max(-67.5,Math.min(start.z,goal.z)-margin)/cell);
+ const zmax=Math.floor(Math.min(67.5,Math.max(start.z,goal.z)+margin)/cell);
+ const width=xmax-xmin+1,height=zmax-zmin+1;
+ if(width<=0||height<=0)return [];
+ const total=width*height;
+ const index=(x:number,z:number)=>(z-zmin)*width+(x-xmin);
+ const coords=(id:number):Flat=>({x:(xmin+id%width)*cell,z:(zmin+Math.floor(id/width))*cell});
+ const gridX=(x:number)=>Math.max(xmin,Math.min(xmax,Math.round(x/cell)));
+ const gridZ=(z:number)=>Math.max(zmin,Math.min(zmax,Math.round(z/cell)));
+ const source=index(gridX(start.x),gridZ(start.z));
+ const target=index(gridX(goal.x),gridZ(goal.z));
+ const mapColliders=colliders.filter(c=>c.maxY>.42&&c.minY<2.1&&
+   c.maxX>xmin*cell-2&&c.minX<xmax*cell+2&&c.maxZ>zmin*cell-2&&c.minZ<zmax*cell+2);
+ const clear=new Int8Array(total); // 0 unknown, 1 free, -1 obstructed
+ const canEnter=(id:number)=>{
+  if(clear[id]===0){const p=coords(id);clear[id]=freeAt(p.x,p.z,mapColliders,radius)?1:-1;}
+  return clear[id]===1;
+ };
+ const g=new Float32Array(total);g.fill(Infinity);g[source]=0;
+ const parent=new Int32Array(total);parent.fill(-1);
+ const closed=new Uint8Array(total);
+ type Node={id:number;score:number};
+ const heap:Node[]=[];
+ const push=(entry:Node)=>{let i=heap.length;heap.push(entry);while(i>0){
+   const p=(i-1)>>1;if(heap[p].score<=entry.score)break;heap[i]=heap[p];i=p;
+  }heap[i]=entry;};
+ const pop=():Node=>{
+   const first=heap[0],last=heap.pop()!;
+   if(heap.length){let i=0;while(i*2+1<heap.length){
+     let child=i*2+1;if(child+1<heap.length&&heap[child+1].score<heap[child].score)child++;
+     if(heap[child].score>=last.score)break;
+     heap[i]=heap[child];i=child;
+   }heap[i]=last;}
+   return first;
+ };
+ const heuristic=(id:number)=>{const p=coords(id);return Math.hypot(p.x-goal.x,p.z-goal.z);};
+ push({id:source,score:heuristic(source)});
+ const steps:[number,number,number][]=[
+  [1,0,1],[-1,0,1],[0,1,1],[0,-1,1],
+  [1,1,Math.SQRT2],[-1,1,Math.SQRT2],[1,-1,Math.SQRT2],[-1,-1,Math.SQRT2]
+ ];
+ let reached=-1,closest=-1,best=Infinity;
+ for(let expanded=0;heap.length&&expanded<7000;){
+  const {id}=pop();if(closed[id])continue;closed[id]=1;expanded++;
+  const x=xmin+id%width,z=zmin+Math.floor(id/width);
+  const h=heuristic(id);
+  if(h<best){best=h;closest=id;}
+  if(id===target){reached=id;break;}
+  for(const [dx,dz,cost] of steps){
+   const nx=x+dx,nz=z+dz;
+   if(nx<xmin||nx>xmax||nz<zmin||nz>zmax)continue;
+   const next=index(nx,nz);
+   if(closed[next]||!canEnter(next))continue;
+   if(dx&&dz&&(!canEnter(index(x+dx,z))||!canEnter(index(x,z+dz))))continue;
+   const trial=g[id]+cost*cell;
+   if(trial+1e-5>=g[next])continue;
+   g[next]=trial;parent[next]=id;push({id:next,score:trial+heuristic(next)});
   }
-  if(clear)return goal;
-  // Short bounded A* around the zombie. The 2m grid needs at most 400 nodes,
-  // and an expansion budget keeps dense hordes inexpensive.
-  const cell=1.65, side=29, mid=(side-1)/2;
-  const clamp=(n:number)=>Math.max(0,Math.min(side-1,Math.round(n)));
-  const key=(ix:number,iz:number)=>iz*side+ix;
-  const world=(ix:number,iz:number):Flat=>({x:start.x+(ix-mid)*cell,z:start.z+(iz-mid)*cell});
-  const goalX=clamp(mid+deltaX/cell),goalZ=clamp(mid+deltaZ/cell);
-  const wanted=key(goalX,goalZ),startIndex=key(mid,mid);
-  const g=new Float32Array(side*side);g.fill(Infinity);g[startIndex]=0;
-  const parent=new Int16Array(side*side);parent.fill(-1);
-  const done=new Uint8Array(side*side),open=[startIndex];
-  let best=startIndex,bestDist=Infinity;
-  const toward=(x:number,z:number)=>Math.hypot(x-goalX,z-goalZ);
-  const delta=[[0,-1],[0,1],[-1,0],[1,0],[-1,-1],[-1,1],[1,-1],[1,1]];
-  for(let iterations=0;open.length&&iterations<250;iterations++){
-    let selected=0,score=Infinity;
-    for(let i=0;i<open.length;i++){
-      const index=open[i],x=index%side,z=Math.floor(index/side);
-      const f=g[index]+toward(x,z)*1.2;
-      if(f<score){score=f;selected=i;}
-    }
-    const index=open.splice(selected,1)[0];if(done[index])continue;
-    done[index]=1;
-    const x=index%side,z=Math.floor(index/side);
-    const d=toward(x,z);
-    if(d<bestDist){bestDist=d;best=index;}
-    if(index===wanted)break;
-    for(const [dx,dz] of delta){
-      const nx=x+dx,nz=z+dz;if(nx<0||nz<0||nx>=side||nz>=side)continue;
-      const p=world(nx,nz),next=key(nx,nz);
-      if(done[next]||!freeAt(p.x,p.z,close,radius))continue;
-      // No diagonal shortcut through corners.
-      if(dx&&dz){
-        const one=world(nx,z),two=world(x,nz);
-        if(!freeAt(one.x,one.z,close,radius)||!freeAt(two.x,two.z,close,radius))continue;
-      }
-      const newCost=g[index]+(dx&&dz?1.414:1);
-      if(newCost>=g[next])continue;
-      g[next]=newCost;parent[next]=index;
-      open.push(next);
-    }
-  }
-  if(best===startIndex)return goal;
-  let current=best;let count=0;
-  while(parent[current]>=0&&parent[current]!==startIndex&&count++<side*side)current=parent[current];
-  return world(current%side,Math.floor(current/side));
+ }
+ if(reached<0)reached=closest;
+ if(reached<0||reached===source)return [];
+ const points:Flat[]=[];
+ let current=reached;
+ for(let iterations=0;current!==source&&current>=0&&iterations<total;iterations++){
+   points.push(coords(current));current=parent[current];
+ }
+ if(current!==source)return [];
+ points.reverse();
+ // Retain turns (not a new moving-grid waypoint on every repath). Lookahead
+ // only skips cells when the COMPLETE diagonal is collision-clear.
+ const simplified:Flat[]=[];let anchor=start,idx=0;
+ while(idx<points.length){
+   let far=idx;
+   for(let j=idx+1;j<points.length;j++){
+     if(!pathClear(anchor,points[j],mapColliders,radius))break;
+     far=j;
+   }
+   const next=points[far];simplified.push(next);anchor=next;idx=far+1;
+ }
+ if(pathClear(anchor,goal,mapColliders,radius))simplified.push({x:goal.x,z:goal.z});
+ return simplified;
+}
+/** Backward compatible first waypoint for older tests and optional callers. */
+export function routeStreet(start:Flat,goal:Flat,colliders:readonly Collider[],radius=.49):Flat {
+ return planStreetPath(start,goal,colliders,radius)[0] ?? start;
 }
 
 /** Agent separation respects buildings and avoids horde dogpiling, while 

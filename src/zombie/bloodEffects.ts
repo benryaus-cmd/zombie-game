@@ -60,7 +60,8 @@ export class BloodEffects {
       STAINS,
     );
     this.decals.frustumCulled = false;
-    this.decals.renderOrder = 3;
+    // Ground stains render after soft firelight disks, behind solid flames via depth.
+    this.decals.renderOrder = 1;
     for (let i = 0; i < STAINS; i++) {
       this.decals.setMatrixAt(i, this.unused);
       this.stains.push({ expires: 0, active: false });
