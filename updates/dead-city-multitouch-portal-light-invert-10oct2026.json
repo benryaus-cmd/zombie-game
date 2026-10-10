@@ -1,0 +1,51 @@
+{
+  "version": "dead-city-multitouch-portal-light-invert-10oct2026",
+  "type": "incremental",
+  "repository": "benryaus-cmd/zombie-game",
+  "commit": "f9cb3cc207e09f0ee57e15888379dcfac837e61a",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/f9cb3cc207e09f0ee57e15888379dcfac837e61a/",
+  "fileCount": 10,
+  "description": "Dead City: simultaneous touchscreen joystick movement with independent pointerdown reload, jump, weapon cycle, menu, Metal FM, portal link and tutorial navigation controls; blue HubSide return portal marker + offscreen bearing on heading-up minimap; testable inverted streetlight mode in LIVE TEST VALUES (normally OFF flickering ON / normally ON flickering OFF) using original Map2 lamp materials, pool and point lights. Preserves tuned defaults, radio, weather, weapons, waves and all unlisted files.",
+  "files": [
+    {
+      "source": "src/zombie/ZombieGame.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/ZombieGame.tsx"
+    },
+    {
+      "source": "src/zombie/Radar.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/Radar.tsx"
+    },
+    {
+      "source": "src/game/cityAtmosphere.ts",
+      "target": "src/games/importedGame/upstream/src/game/cityAtmosphere.ts"
+    },
+    {
+      "source": "src/zombie/WarzoneAtmosphere.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/WarzoneAtmosphere.ts"
+    },
+    {
+      "source": "src/zombie/tuning.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/tuning.ts"
+    },
+    {
+      "source": "src/zombie/DebugPanel.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/DebugPanel.tsx"
+    },
+    {
+      "source": "src/zombie/debug.css",
+      "target": "src/games/importedGame/upstream/src/zombie/debug.css"
+    },
+    {
+      "source": "src/zombie/MetalRadio.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/MetalRadio.tsx"
+    },
+    {
+      "source": "src/zombie/TutorialOverlay.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/TutorialOverlay.tsx"
+    },
+    {
+      "source": "src/zombie/tutorial.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/tutorial.ts"
+    }
+  ]
+}
