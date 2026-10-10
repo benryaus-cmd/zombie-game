@@ -16,10 +16,14 @@ export function lampActivation(distance:number,settings:RenderSettings):number {
  * Existing distance fades and light power still come from CityAtmosphere. */
 export function lampFlickerMultiplier(x:number,z:number,time:number,config:{
  strength:number;idle:number;rate:number;chance:number;duration:number;peak:number;invert:number;
-}):number {
+ flashDistance?:number;
+},viewer?:{x:number;z:number}):number {
  const onFirst=config.invert>=.5;
  const idle=onFirst?config.peak:config.idle;
- if(config.strength<=0)return idle;
+ // A flicker is a strictly local effect: lamps outside the player radius
+ // retain their configured steady baseline. Horizontal distance, not bulb height.
+ if(config.strength<=0 ||
+    (viewer && Math.hypot(x-viewer.x,z-viewer.z)>Math.max(0,config.flashDistance??8)))return idle;
  const hash=(n:number)=>(Math.sin(n*12.9898+78.233)*43758.5453%1+1)%1;
  const seed=hash(x*4.3+z*9.7);
  const epoch=time*Math.max(.1,config.rate)+seed*19;
@@ -42,12 +46,13 @@ export class CityAtmosphere {
   private bulbSites:THREE.Vector3[]=[];private bulbBases:number[]=[];
   private poolSites:THREE.Vector3[]=[];private poolBases:number[]=[];
   private flickerAt=-1;
+  private readonly flickerViewer={x:0,z:0};
   private flickerConfig={
-    strength:0,idle:.02,rate:1.5,chance:.45,duration:.2,peak:1.5,onRange:1,colour:0,invert:0
+    strength:0,idle:.02,rate:1.5,chance:.45,duration:.2,peak:1.5,onRange:1,colour:0,invert:0,flashDistance:8
   };
   private lampSettings=getRenderSettings();
-  private static flicker(x:number,z:number,time:number,config:typeof CityAtmosphere.prototype.flickerConfig){
-    return lampFlickerMultiplier(x,z,time,config);
+  private flickerLocal(x:number,z:number,time:number){
+    return lampFlickerMultiplier(x,z,time,this.flickerConfig,this.flickerViewer);
   }
   private updateFlicker(time:number,settings:Partial<typeof this.flickerConfig>|number){
     if(typeof settings==='number')settings={strength:settings};
@@ -58,16 +63,16 @@ export class CityAtmosphere {
     const pools=this.pools.geometry.getAttribute('lampFade') as THREE.InstancedBufferAttribute;
     for(let i=0;i<this.bulbSites.length;i++){
       const p=this.bulbSites[i];
-      bulbs.setX(i,this.bulbBases[i]*CityAtmosphere.flicker(p.x,p.z,time,config));
+      bulbs.setX(i,this.bulbBases[i]*this.flickerLocal(p.x,p.z,time));
     }
     for(let i=0;i<this.poolSites.length;i++){
       const p=this.poolSites[i];
-      pools.setX(i,this.poolBases[i]*CityAtmosphere.flicker(p.x,p.z,time,config));
+      pools.setX(i,this.poolBases[i]*this.flickerLocal(p.x,p.z,time));
     }
     bulbs.needsUpdate=true;pools.needsUpdate=true;
     for(const light of this.lights){
       const base=(light.userData.deadCityBaseIntensity as number|undefined)??0;
-      light.intensity=base*CityAtmosphere.flicker(light.position.x,light.position.z,time,config);
+      light.intensity=base*this.flickerLocal(light.position.x,light.position.z,time);
       light.distance=this.lampSettings.lampDistance*config.onRange;
       light.color.setRGB(1,.73+.20*config.colour,.46+.4*config.colour);
     }
@@ -92,6 +97,8 @@ export class CityAtmosphere {
   }
   update(x:number,z:number,anchors:{position:THREE.Vector3;bulbMaterial:THREE.MeshStandardMaterial}[],settings=getRenderSettings(),now=performance.now(),playerY=1.7,camera?:THREE.Camera){
     this.lampSettings=settings;
+    // Updated on every camera/player tick, not only 200ms chunk-lamp refresh.
+    this.flickerViewer.x=x;this.flickerViewer.z=z;
     const cx=Math.floor(x/48+.5),cz=Math.floor(z/48+.5);
     const signature=`${cx}:${cz}:${settings.groundChunks}:${settings.detailDistance}:${settings.fogDensity}:${settings.fogStyle}:${settings.fogFar}:${settings.fogCull}:${settings.streetLights}:${settings.lampRadius}:${settings.lampActivationDistance}:${settings.lampFadeDistance}:${anchors.length}:${settings.heightLod}:${settings.shortDetailDistance}:${settings.tallDetailDistance}`;
     const changed=signature!==this.signature;

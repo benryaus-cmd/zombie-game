@@ -29,3 +29,28 @@ test('streetlight flicker with chance zero stays at chosen steady mode',()=>{
   assert.equal(first,invert?config.peak:config.idle);
  }
 });
+
+test('8m player-to-lamp flash radius prevents ALL distant lamp flickering',()=>{
+ const nearby={x:11+7.99,z:-4};
+ const beyond={x:11+8.01,z:-4};
+ const options={...config,flashDistance:8,peak:1.5,idle:0,chance:1,strength:3};
+ for(const invert of [0,1]){
+   const setting={...options,invert};
+   const baseline=invert?setting.peak:setting.idle;
+   let nearPulses=0;
+   for(let i=0;i<600;i++){
+     const time=i*.07;
+     const far=lampFlickerMultiplier(11,-4,time,setting,beyond);
+     const near=lampFlickerMultiplier(11,-4,time,setting,nearby);
+     assert.equal(far,baseline,'a lamp beyond 8m never flickers, regardless of time');
+     if(near!==baseline)nearPulses++;
+   }
+   assert.ok(nearPulses>10,'lamps inside 8m retain the flicker effect');
+ }
+});
+test('flash radius zero disables flashing but not steady lighting',()=>{
+ const setting={...config,flashDistance:0,chance:1,strength:3};
+ for(const invert of [0,1]){
+   assert.equal(lampFlickerMultiplier(5,5,123,{...setting,invert},{x:6,z:5}),invert?setting.peak:setting.idle);
+ }
+});

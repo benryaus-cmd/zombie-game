@@ -139,7 +139,7 @@ export class WarzoneAtmosphere {
   tick?.(performance.now()/1000,{
    strength:t.warStreetFlicker,idle:t.warLampIdle,rate:t.warLampRate,
    chance:t.warLampChance,duration:t.warLampDuration,peak:t.warLampPeak,
-   onRange:t.warLampRange,colour:t.warLampWarmth,invert:t.warLampInvert
+   onRange:t.warLampRange,colour:t.warLampWarmth,invert:t.warLampInvert,flashDistance:t.warLampFlashDistance
   });
   if(t.warEventsEnabled<.5){
    this.burst=null;this.projectiles.length=0;
@@ -192,7 +192,12 @@ export class WarzoneAtmosphere {
    (this.explosion.material as THREE.SpriteMaterial).opacity=this.explosionAge/.58;
    this.explosion.scale.setScalar(4.5+(1-this.explosionAge/.58)*6);
    this.explosionLight.intensity=t.warExplosionLight*20*(this.explosionAge/.58);
-   this.explosionLight.visible=this.explosionAge>0&&t.warExplosionLight>0;
+   // A distant explosion should remain a visible sprite in the skyline,
+   // but its real point light must never make the nearby WORLD flicker
+   // when the player is farther than the testable flash radius.
+   const dx=this.explosion.position.x-player.x,dz=this.explosion.position.z-player.z;
+   const nearby=(dx*dx+dz*dz)<=t.warLampFlashDistance*t.warLampFlashDistance;
+   this.explosionLight.visible=this.explosionAge>0&&t.warExplosionLight>0&&nearby;
   }
   this.projectiles=this.projectiles.filter(p=>p.elapsed<p.flight+.16).slice(-MAX_TRACERS);
   this.trailPositions.fill(0);this.trailColours.fill(0);
