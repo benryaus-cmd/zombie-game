@@ -1,0 +1,59 @@
+{
+  "version": "dead-city-warzone-atmosphere-10oct2026",
+  "type": "incremental",
+  "repository": "benryaus-cmd/zombie-game",
+  "commit": "93a6737212555ec7e6f9e79305f31499f6858038",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/93a6737212555ec7e6f9e79305f31499f6858038/",
+  "fileCount": 12,
+  "description": "Dead City: prevent zombies spawning unreachable outside walls, fallback accessible spawns for enclosed courtyards, compact upper HUD with HP in first row and minimap moved up, remove visible FPS while retaining live tuning diagnostics, matte survivor material fix, powerful zombie-hit haptics, burning barrels/scorch/debris/fire/smoke/flicker, occasional rooftop battle tracers, distant flashes/explosions, positional CC0 fire crackles, heavy metallic score stingers and subtle wind. No HubSide server/world changes; preserve all unlisted files.",
+  "files": [
+    {
+      "source": "src/zombie/ZombieGame.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/ZombieGame.tsx"
+    },
+    {
+      "source": "src/zombie/navigation.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/navigation.ts"
+    },
+    {
+      "source": "src/zombie/WarzoneAtmosphere.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/WarzoneAtmosphere.ts"
+    },
+    {
+      "source": "src/zombie/audio.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/audio.ts"
+    },
+    {
+      "source": "src/zombie/tuning.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/tuning.ts"
+    },
+    {
+      "source": "src/zombie/survivor.ts",
+      "target": "src/games/importedGame/upstream/src/zombie/survivor.ts"
+    },
+    {
+      "source": "src/zombie/zombie.css",
+      "target": "src/games/importedGame/upstream/src/zombie/zombie.css"
+    },
+    {
+      "source": "public/audio/sfx/war-stinger-0.ogg",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/war-stinger-0.ogg"
+    },
+    {
+      "source": "public/audio/sfx/war-stinger-1.ogg",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/war-stinger-1.ogg"
+    },
+    {
+      "source": "public/audio/sfx/war-stinger-2.ogg",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/war-stinger-2.ogg"
+    },
+    {
+      "source": "public/audio/sfx/war-explosion.wav",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/war-explosion.wav"
+    },
+    {
+      "source": "public/audio/sfx/war-fire-crackle.ogg",
+      "target": "src/games/importedGame/upstream/public/audio/sfx/war-fire-crackle.ogg"
+    }
+  ]
+}
