@@ -45,9 +45,8 @@ type Enemy = {
 };
 const INITIAL_HUD: Hud = { health: 100, wave: 0, kills: 0, alive: 0, queued: 0, ammo: 12, reserve: 96, weapon: 'pistol', reloading: false, countdown: 0, over: false, ready: false, notice: 'LOADING THE CITY...', portal: false, hit: false, hurt: false, score:0, multiplier:1, combo:0, callout:'', pickupMessage:'' };
 const HUBSIDE_URL = 'https://preview--55efd0b1-9368-4172-9456-53db458ef667.aippy.live';
-// Set true only when the removable LIVE TEST VALUES / FPS developer tool is needed.
-// No debug UI or FPS measurement is mounted in the published game.
-const SHOW_LIVE_TEST_VALUES = false;
+// Keep the removable LIVE TEST VALUES / FPS tool available from the game menu.
+const SHOW_LIVE_TEST_VALUES = true;
 /** Act on pointer DOWN, not click. Android WebView can suppress synthetic clicks
  * from a second touch while the first finger owns MOVE's pointer capture.
  * A mouse/keyboard can still activate these buttons with Enter/Space. */
