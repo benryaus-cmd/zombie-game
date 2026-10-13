@@ -1,0 +1,15 @@
+{
+  "version": "dead-city-unhide-live-test-13oct2026",
+  "type": "incremental",
+  "repository": "benryaus-cmd/zombie-game",
+  "commit": "cce36f75ce62c4a2b9e008dbc157ca1c0c5d7e8a",
+  "baseUrl": "https://raw.githubusercontent.com/benryaus-cmd/zombie-game/cce36f75ce62c4a2b9e008dbc157ca1c0c5d7e8a/",
+  "fileCount": 1,
+  "description": "Restore the existing LIVE TEST VALUES / FPS menu button and draggable live tuning panel. Preserve all current tuned defaults, per-field reset, reset-all, JSON export, gameplay saves, orientation, haptics, radio and original imported-game host.",
+  "files": [
+    {
+      "source": "src/zombie/ZombieGame.tsx",
+      "target": "src/games/importedGame/upstream/src/zombie/ZombieGame.tsx"
+    }
+  ]
+}
