@@ -1,0 +1,4 @@
+Apply the Dead City live test update to the existing Zombie Game project using this exact incremental manifest:
+https://raw.githubusercontent.com/benryaus-cmd/zombie-game/main/updates/dead-city-unhide-live-test-13oct2026.json
+
+Fetch the manifest, use its pinned commit/baseUrl and import exactly its one listed file to its target path. Preserve the original imported-game host, App/entry/router, package/build configuration, plugins, assets and all saved game/settings storage. Do not import the full repository or Blacktop files. This exposes the existing LIVE TEST VALUES / FPS button in the start/pause menu and its removable draggable panel. Keep live editing, FPS, individual default reset, reset-all and COPY SETTINGS JSON working. Existing tuning defaults and stored values must remain unchanged. Validate the button opens, changing Movement speed updates its JSON, individual reset restores that setting, and the panel can minimise, expand, close and reopen.
